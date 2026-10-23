@@ -64,45 +64,48 @@ export const DispatchPreview: React.FC<DispatchPreviewProps> = ({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'ALLOCATED':
-        return 'bg-emerald-950/80 text-emerald-400 border-emerald-800/80';
+        return 'bg-[#EAF8E7] text-[#2C742F] border-[#BDE5BA]';
       case 'CLAIMED':
-        return 'bg-teal-950/80 text-teal-300 border-teal-800/80';
+        return 'bg-[#EBF4FE] text-[#2B7FDE] border-[#C6E0FC]';
       case 'PICKED_UP':
-        return 'bg-cyan-950/80 text-cyan-300 border-cyan-800/80';
+        return 'bg-[#F0FDF4] text-[#15803D] border-[#BBF7D0]';
       case 'IN_TRANSIT':
-        return 'bg-blue-950/80 text-blue-300 border-blue-800/80';
+        return 'bg-[#FFF3E5] text-[#D97706] border-[#FDE3B7]';
       case 'REROUTED':
-        return 'bg-amber-950 text-amber-300 border-amber-600 font-bold animate-pulse';
+        return 'bg-[#FEF3C7] text-[#B45309] border-[#FDE68A] font-bold soft-pulse';
       case 'DELIVERED':
-        return 'bg-green-950 text-green-300 border-green-800 font-bold';
+        return 'bg-[#DCFCE7] text-[#166534] border-[#86EFAC] font-bold';
       case 'UNSALVAGEABLE':
-        return 'bg-rose-950 text-rose-300 border-rose-800 font-bold';
+        return 'bg-[#FDE8E8] text-[#EA4B48] border-[#F8B4B4] font-bold';
       default:
-        return 'bg-slate-800 text-slate-300 border-slate-700';
+        return 'bg-[#F3F4F6] text-[#4B5563] border-[#E5E7EB]';
     }
   };
 
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="p-6 bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/30 rounded-2xl">
+      <div className="p-6 bg-gradient-to-r from-[#EAF8E7] via-white to-[#F8FAF8] border border-[#BDE5BA] rounded-2xl shadow-sm">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl">
+            <div className="flex items-center gap-2.5">
+              <span className="p-2.5 bg-[#00B207] text-white rounded-xl shadow-sm shadow-[#00B207]/30">
                 <Radio className="w-5 h-5 animate-pulse" />
               </span>
-              <h2 className="text-lg font-bold text-white">
-                Intelligent Dispatch & Parcel Splitting Console
-              </h2>
-              <span className="text-xs bg-emerald-950 text-emerald-400 border border-emerald-800/80 px-2.5 py-0.5 rounded-full font-mono font-semibold">
-                Phase 5 Active Recovery
-              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-[#1A1A1A]">
+                    Intelligent Dispatch & Parcel Splitting Console
+                  </h2>
+                  <span className="text-[10px] bg-[#00B207] text-white px-2 py-0.5 rounded-full font-semibold">
+                    Live Engine
+                  </span>
+                </div>
+                <p className="text-xs text-[#666666] mt-1 max-w-2xl leading-relaxed">
+                  Bulk food batches are automatically partitioned into courier parcels with active lifecycle tracking, courier handovers, and Salvage Ladder rerouting.
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-slate-300 mt-2 max-w-2xl leading-relaxed">
-              TheSaviour treats time, courier limits, and shelter dependencies as first-class constraints. 
-              Bulk donations are split into parcels with active lifecycle tracking, courier handovers, and Salvage Ladder rerouting.
-            </p>
           </div>
 
           <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
@@ -110,7 +113,7 @@ export const DispatchPreview: React.FC<DispatchPreviewProps> = ({
               <button
                 onClick={onTriggerAutoAllocate}
                 disabled={isAllocating}
-                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-emerald-950 flex items-center gap-2"
+                className="px-5 py-2.5 bg-[#00B207] hover:bg-[#008A05] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-[#00B207]/25 flex items-center gap-2"
               >
                 {isAllocating ? (
                   <>
@@ -126,9 +129,9 @@ export const DispatchPreview: React.FC<DispatchPreviewProps> = ({
               </button>
             )}
 
-            <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-xl text-right">
-              <span className="text-[10px] text-slate-400 font-mono block">Safety Invariant Check</span>
-              <span className="text-xs font-mono font-bold text-emerald-400">
+            <div className="p-3 bg-white border border-[#E6E6E6] rounded-xl text-right shadow-sm">
+              <span className="text-[10px] text-[#808080] font-mono block">Feasibility Invariant</span>
+              <span className="text-xs font-mono font-bold text-[#2C742F]">
                 now + travel + handling ≤ expiry - buffer
               </span>
             </div>
@@ -137,36 +140,38 @@ export const DispatchPreview: React.FC<DispatchPreviewProps> = ({
       </div>
 
       {actionError && (
-        <div className="p-3.5 bg-rose-950/80 border border-rose-800 rounded-xl text-xs text-rose-300 flex items-center justify-between">
+        <div className="p-3.5 bg-[#FDE8E8] border border-[#F8B4B4] rounded-xl text-xs text-[#EA4B48] flex items-center justify-between font-medium">
           <span>{actionError}</span>
-          <button onClick={() => setActionError(null)} className="text-rose-400 hover:text-white font-bold">×</button>
+          <button onClick={() => setActionError(null)} className="text-[#EA4B48] hover:text-[#991B1B] font-bold text-sm">×</button>
         </div>
       )}
 
       {/* Live Dispatched Parcels Section */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <Layers className="w-5 h-5 text-emerald-400" />
-            <h3 className="text-base font-bold text-white">
+      <div className="bg-white border border-[#E6E6E6] rounded-2xl p-6 shadow-sm">
+        <div className="flex items-center justify-between pb-4 border-b border-[#E6E6E6]">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-[#EAF8E7] rounded-xl text-[#00B207]">
+              <Layers className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-bold text-[#1A1A1A]">
               Active Courier Allocations & Dispatched Parcels
             </h3>
-            <span className="text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-              {allocations.length} Tracked
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#EAF8E7] text-[#2C742F] border border-[#BDE5BA]">
+              {allocations.length} Active Parcels
             </span>
           </div>
         </div>
 
         {allocations.length === 0 ? (
-          <div className="py-12 text-center text-xs text-slate-400 space-y-2">
-            <Package className="w-8 h-8 text-slate-600 mx-auto" />
-            <div className="font-semibold text-slate-300">No parcels currently dispatched</div>
-            <p className="max-w-md mx-auto text-slate-500">
+          <div className="py-12 text-center text-xs text-[#666666] space-y-2">
+            <Package className="w-10 h-10 text-[#CCCCCC] mx-auto" />
+            <div className="font-bold text-[#1A1A1A] text-sm">No parcels currently dispatched</div>
+            <p className="max-w-md mx-auto text-[#808080]">
               Click <strong>"Auto-Allocate Aid"</strong> above to run the intelligent allocation engine, match available donation batches, and split parcels across available riders.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-5">
             {allocations.map((alloc) => {
               const isTerminal = alloc.status === 'DELIVERED' || alloc.status === 'UNSALVAGEABLE';
               const isBusy = processingId === alloc.id;
@@ -174,61 +179,61 @@ export const DispatchPreview: React.FC<DispatchPreviewProps> = ({
               return (
                 <div
                   key={alloc.id}
-                  className={`p-4 bg-slate-950/80 rounded-2xl border transition-all flex flex-col justify-between ${
+                  className={`p-4 rounded-2xl border transition-all flex flex-col justify-between bg-white shadow-sm hover:shadow-md ${
                     alloc.status === 'REROUTED'
-                      ? 'border-amber-500/50 shadow-lg shadow-amber-950/30'
+                      ? 'border-[#FF8A00] bg-[#FFFBF5]'
                       : alloc.status === 'UNSALVAGEABLE'
-                      ? 'border-rose-500/40 bg-rose-950/10'
+                      ? 'border-[#EA4B48] bg-[#FFF5F5]'
                       : alloc.status === 'DELIVERED'
-                      ? 'border-green-500/30 opacity-90'
-                      : 'border-emerald-500/20 hover:border-emerald-500/40'
+                      ? 'border-[#00B207] bg-[#F9FCF9]'
+                      : 'border-[#E6E6E6] hover:border-[#00B207]'
                   }`}
                 >
                   <div>
                     {/* Top Status & ID Bar */}
-                    <div className="flex items-center justify-between text-xs mb-2 pb-2 border-b border-slate-900">
+                    <div className="flex items-center justify-between text-xs mb-2.5 pb-2 border-b border-[#F2F2F2]">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-[10px] text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/60">
+                        <span className="font-mono text-[10px] text-[#2C742F] font-bold bg-[#EAF8E7] px-2 py-0.5 rounded border border-[#BDE5BA]">
                           {alloc.id.split('-').slice(-2).join('-')}
                         </span>
-                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${getStatusBadge(alloc.status)}`}>
-                          {alloc.status}
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${getStatusBadge(alloc.status)}`}>
+                          {alloc.status.replace('_', ' ')}
                         </span>
                       </div>
-                      <span className="font-mono font-bold text-emerald-300 text-xs">
+                      <span className="font-mono font-black text-[#00B207] text-sm">
                         {alloc.quantity} {alloc.unit}
                       </span>
                     </div>
 
-                    <h4 className="text-sm font-bold text-white mb-2">
+                    <h4 className="text-sm font-bold text-[#1A1A1A] mb-2.5 line-clamp-1">
                       {alloc.donation_item_name}
                     </h4>
 
                     {/* From / To / Courier Info */}
-                    <div className="space-y-1.5 text-xs text-slate-300">
+                    <div className="space-y-1.5 text-xs text-[#4D4D4D]">
                       <div className="flex items-center gap-1.5">
-                        <Package className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <Package className="w-3.5 h-3.5 text-[#808080] shrink-0" />
                         <span className="truncate"><strong>From:</strong> {alloc.donor_name}</span>
                       </div>
                       
                       <div className="flex items-center gap-1.5">
-                        <Building2 className={`w-3.5 h-3.5 shrink-0 ${alloc.original_shelter_name ? 'text-amber-400' : 'text-emerald-400'}`} />
+                        <Building2 className={`w-3.5 h-3.5 shrink-0 ${alloc.original_shelter_name ? 'text-[#FF8A00]' : 'text-[#00B207]'}`} />
                         <div className="truncate">
                           <strong>To:</strong> {alloc.shelter_name}
                           {alloc.original_shelter_name && (
-                            <span className="block text-[10px] text-amber-300 font-mono mt-0.5">
+                            <span className="block text-[10px] text-[#D97706] font-medium mt-0.5">
                               (Rerouted from {alloc.original_shelter_name})
                             </span>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1.5 text-cyan-300">
-                        <Bike className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                      <div className="flex items-center gap-1.5 text-[#2B7FDE]">
+                        <Bike className="w-3.5 h-3.5 shrink-0" />
                         <div className="truncate">
-                          <strong>Courier:</strong> {alloc.rider_name}
+                          <strong className="text-[#1A1A1A]">Courier:</strong> {alloc.rider_name}
                           {alloc.original_rider_name && (
-                            <span className="block text-[10px] text-cyan-400 font-mono mt-0.5">
+                            <span className="block text-[10px] text-[#2B7FDE] font-medium mt-0.5">
                               (Handover from {alloc.original_rider_name})
                             </span>
                           )}
@@ -238,10 +243,10 @@ export const DispatchPreview: React.FC<DispatchPreviewProps> = ({
 
                     {/* Recovery Note Callout */}
                     {alloc.recovery_reason && (
-                      <div className={`mt-2.5 p-2 rounded-lg border text-[11px] leading-relaxed font-mono ${
+                      <div className={`mt-3 p-2.5 rounded-xl border text-[11px] leading-relaxed ${
                         alloc.status === 'UNSALVAGEABLE'
-                          ? 'bg-rose-950/40 text-rose-300 border-rose-800/60'
-                          : 'bg-amber-950/40 text-amber-300 border-amber-800/60'
+                          ? 'bg-[#FDE8E8] text-[#EA4B48] border-[#F8B4B4]'
+                          : 'bg-[#FFF3E5] text-[#D97706] border-[#FDE3B7]'
                       }`}>
                         <div className="flex items-center gap-1 font-bold text-[10px] uppercase mb-0.5">
                           <AlertTriangle className="w-3 h-3" />
@@ -253,14 +258,14 @@ export const DispatchPreview: React.FC<DispatchPreviewProps> = ({
                   </div>
 
                   {/* Lifecycle Action Buttons */}
-                  <div className="mt-3 pt-2.5 border-t border-slate-900 space-y-2">
+                  <div className="mt-3.5 pt-3 border-t border-[#F2F2F2] space-y-2">
                     {!isTerminal && (
                       <div className="flex flex-wrap gap-1.5">
                         {(alloc.status === 'ALLOCATED' || alloc.status === 'CLAIMED') && (
                           <button
                             onClick={() => handleAction(alloc.id, 'pickup')}
                             disabled={isBusy}
-                            className="px-2.5 py-1 bg-cyan-900/60 hover:bg-cyan-800 text-cyan-200 border border-cyan-700/60 rounded-lg text-[11px] font-semibold flex items-center gap-1 disabled:opacity-50"
+                            className="px-2.5 py-1.5 bg-[#EBF4FE] hover:bg-[#d9ecfe] text-[#2B7FDE] border border-[#C6E0FC] rounded-lg text-xs font-semibold flex items-center gap-1 disabled:opacity-50 transition-colors"
                           >
                             {isBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Package className="w-3 h-3" />}
                             <span>Pickup</span>
@@ -271,7 +276,7 @@ export const DispatchPreview: React.FC<DispatchPreviewProps> = ({
                           <button
                             onClick={() => handleAction(alloc.id, 'in-transit')}
                             disabled={isBusy}
-                            className="px-2.5 py-1 bg-blue-900/60 hover:bg-blue-800 text-blue-200 border border-blue-700/60 rounded-lg text-[11px] font-semibold flex items-center gap-1 disabled:opacity-50"
+                            className="px-2.5 py-1.5 bg-[#FFF3E5] hover:bg-[#fee7cc] text-[#D97706] border border-[#FDE3B7] rounded-lg text-xs font-semibold flex items-center gap-1 disabled:opacity-50 transition-colors"
                           >
                             {isBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
                             <span>Depart</span>
@@ -282,7 +287,7 @@ export const DispatchPreview: React.FC<DispatchPreviewProps> = ({
                           <button
                             onClick={() => handleAction(alloc.id, 'deliver')}
                             disabled={isBusy}
-                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-semibold flex items-center gap-1 shadow-sm disabled:opacity-50"
+                            className="px-2.5 py-1.5 bg-[#00B207] hover:bg-[#008A05] text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-sm disabled:opacity-50 transition-colors"
                           >
                             {isBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
                             <span>Deliver</span>
@@ -293,15 +298,15 @@ export const DispatchPreview: React.FC<DispatchPreviewProps> = ({
                           onClick={() => handleAction(alloc.id, 'release')}
                           disabled={isBusy}
                           title="Voluntarily release parcel back to unallocated batch"
-                          className="px-2 py-1 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-rose-400 border border-slate-800 rounded-lg text-[11px] font-medium ml-auto disabled:opacity-50"
+                          className="px-2 py-1 bg-[#F5F5F5] hover:bg-[#FDE8E8] text-[#808080] hover:text-[#EA4B48] border border-[#E6E6E6] rounded-lg text-[11px] font-medium ml-auto disabled:opacity-50 transition-colors"
                         >
                           Release
                         </button>
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1">
-                      <span>Ref: {alloc.id.slice(0, 15)}...</span>
+                    <div className="flex items-center justify-between text-[10px] font-mono text-[#808080] pt-1">
+                      <span>Ref: {alloc.id.slice(0, 14)}...</span>
                       <span>{alloc.created_at.slice(11, 19)} UTC</span>
                     </div>
                   </div>
@@ -313,69 +318,71 @@ export const DispatchPreview: React.FC<DispatchPreviewProps> = ({
       </div>
 
       {/* 3 Step Concept Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* Step 1: Dynamic Parcel Splitting */}
-        <div className="p-5 bg-slate-900/80 border border-slate-800 rounded-2xl">
-          <div className="w-8 h-8 rounded-lg bg-emerald-950/80 text-emerald-400 flex items-center justify-center font-bold text-xs mb-3 border border-emerald-800/60">
+        <div className="p-5 bg-white border border-[#E6E6E6] rounded-2xl shadow-sm hover:shadow-md transition-all">
+          <div className="w-9 h-9 rounded-xl bg-[#EAF8E7] text-[#00B207] flex items-center justify-center font-bold text-sm mb-3 border border-[#BDE5BA]">
             01
           </div>
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <GitFork className="w-4 h-4 text-emerald-400" />
+          <h3 className="text-sm font-bold text-[#1A1A1A] flex items-center gap-2">
+            <GitFork className="w-4 h-4 text-[#00B207]" />
             Batch → Parcel Splitting
           </h3>
-          <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-            When a donor posts 180 meals, one rider cannot transport it all (max capacity 40 meals).
+          <p className="text-xs text-[#666666] mt-2 leading-relaxed">
+            When a donor posts 180 meals, one rider cannot transport it all (courier bike cap: 40 meals).
             The allocator creates independent parcels with unique lifecycles, ETAs, and assigned volunteers.
           </p>
-          <div className="mt-4 p-2.5 bg-slate-950 rounded-lg border border-slate-800/80 font-mono text-[11px] text-slate-300">
+          <div className="mt-4 p-2.5 bg-[#F8FAF8] rounded-xl border border-[#E6E6E6] font-mono text-xs text-[#2C742F] font-semibold">
             180 meals → [40 + 40 + 40 + 40 + 20]
           </div>
         </div>
 
         {/* Step 2: Adaptive Slack Leases */}
-        <div className="p-5 bg-slate-900/80 border border-slate-800 rounded-2xl">
-          <div className="w-8 h-8 rounded-lg bg-cyan-950/80 text-cyan-400 flex items-center justify-center font-bold text-xs mb-3 border border-cyan-800/60">
+        <div className="p-5 bg-white border border-[#E6E6E6] rounded-2xl shadow-sm hover:shadow-md transition-all">
+          <div className="w-9 h-9 rounded-xl bg-[#EBF4FE] text-[#2B7FDE] flex items-center justify-center font-bold text-sm mb-3 border border-[#C6E0FC]">
             02
           </div>
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <Clock className="w-4 h-4 text-cyan-400" />
+          <h3 className="text-sm font-bold text-[#1A1A1A] flex items-center gap-2">
+            <Clock className="w-4 h-4 text-[#2B7FDE]" />
             Slack-Based Adaptive Leases
           </h3>
-          <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+          <p className="text-xs text-[#666666] mt-2 leading-relaxed">
             Eliminates ghost reservations. Claims grant a lease duration proportional to remaining slack.
             Progress-aware heartbeats renew leases only if the courier is actively moving toward the pickup point.
           </p>
-          <div className="mt-4 p-2.5 bg-slate-950 rounded-lg border border-slate-800/80 font-mono text-[11px] text-cyan-300">
+          <div className="mt-4 p-2.5 bg-[#F8FAF8] rounded-xl border border-[#E6E6E6] font-mono text-xs text-[#2B7FDE] font-semibold">
             lease = clamp(α × slack, 3m, 15m)
           </div>
         </div>
 
         {/* Step 3: Salvage Ladder Recovery */}
-        <div className="p-5 bg-slate-900/80 border border-slate-800 rounded-2xl">
-          <div className="w-8 h-8 rounded-lg bg-amber-950/80 text-amber-400 flex items-center justify-center font-bold text-xs mb-3 border border-amber-800/60">
+        <div className="p-5 bg-white border border-[#E6E6E6] rounded-2xl shadow-sm hover:shadow-md transition-all">
+          <div className="w-9 h-9 rounded-xl bg-[#FFF3E5] text-[#D97706] flex items-center justify-center font-bold text-sm mb-3 border border-[#FDE3B7]">
             03
           </div>
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-amber-400" />
+          <h3 className="text-sm font-bold text-[#1A1A1A] flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-[#FF8A00]" />
             Salvage Ladder Recovery
           </h3>
-          <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+          <p className="text-xs text-[#666666] mt-2 leading-relaxed">
             If a shelter closes mid-transit, the engine retargets to the next best feasible shelter.
             If human shelters are full or infeasible, it routes to animal welfare / composting partners.
           </p>
-          <div className="mt-4 p-2.5 bg-slate-950 rounded-lg border border-slate-800/80 font-mono text-[11px] text-amber-300">
+          <div className="mt-4 p-2.5 bg-[#F8FAF8] rounded-xl border border-[#E6E6E6] font-mono text-xs text-[#D97706] font-semibold">
             Retarget → Split → Fallback → Unsalvageable
           </div>
         </div>
       </div>
 
       {/* Operational Guarantee Banner */}
-      <div className="p-4 bg-slate-900/50 border border-slate-800/60 rounded-xl flex items-center justify-between text-xs text-slate-400">
-        <div className="flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+      <div className="p-4 bg-[#EDF2EE] border border-[#D5E4D5] rounded-xl flex items-center justify-between text-xs text-[#2C742F]">
+        <div className="flex items-center gap-2 font-medium">
+          <CheckCircle2 className="w-4 h-4 text-[#00B207]" />
           <span>Deterministic allocation engine active: zero-waste parcel partitioning and dependency safety invariants.</span>
         </div>
-        <span className="font-mono text-[10px] text-emerald-400 uppercase font-semibold">Phase 3 Complete</span>
+        <span className="font-semibold text-[11px] bg-white px-2.5 py-1 rounded-full border border-[#BDE5BA] text-[#00B207]">
+          Verified Feasibility
+        </span>
       </div>
     </div>
   );

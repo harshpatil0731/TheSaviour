@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Bike, 
-  Building2, 
-  Package, 
   Play, 
   Pause, 
   RotateCcw, 
   Navigation, 
   Radio, 
-  AlertTriangle, 
   Info,
-  Loader2
+  Loader2,
+  MapPin
 } from 'lucide-react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { 
   Donation, 
   Shelter, 
@@ -30,14 +30,6 @@ interface InteractiveMapProps {
   isAllocating?: boolean;
 }
 
-// Bounding box for Pune disaster relief corridor
-const PUNE_BOUNDS = {
-  minLat: 18.4900,
-  maxLat: 18.6100,
-  minLng: 73.7100,
-  maxLng: 73.9400,
-};
-
 export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   donations,
   shelters,
@@ -46,12 +38,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   onTriggerAutoAllocate,
   isAllocating = false,
 }) => {
-  // Google Maps API Key from environment
-  const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
-  
   // States
-  const [mapsLoaded, setMapsLoaded] = useState<boolean>(false);
-  const [authFailed, setAuthFailed] = useState<boolean>(false);
   const [selectedAllocationId, setSelectedAllocationId] = useState<string>('');
   const [activeRoute, setActiveRoute] = useState<RouteCalculationResponse | null>(null);
   const [loadingRoute, setLoadingRoute] = useState<boolean>(false);
@@ -75,14 +62,14 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     data: any;
   } | null>(null);
 
-  // DOM Refs
-  const googleMapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
-  const polylineRef = useRef<any>(null);
-  const simMarkerRef = useRef<any>(null);
+  // Leaflet DOM & Object Refs
+  const leafletContainerRef = useRef<HTMLDivElement>(null);
+  const leafletMapRef = useRef<L.Map | null>(null);
+  const leafletLayerGroupRef = useRef<L.LayerGroup | null>(null);
+  const leafletPolylineRef = useRef<L.Polyline | null>(null);
+  const leafletSimMarkerRef = useRef<L.Marker | null>(null);
 
-  // Default selected allocation to first available and validate on allocation updates
+  // Default selected allocation to first available
   useEffect(() => {
     if (allocations.length > 0) {
       const exists = allocations.some((a) => a.id === selectedAllocationId);
@@ -93,37 +80,6 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       setSelectedAllocationId('');
     }
   }, [allocations, selectedAllocationId]);
-
-  // Load Google Maps Script if key provided
-  useEffect(() => {
-    if (!googleMapsApiKey || googleMapsApiKey === 'YOUR_GOOGLE_MAPS_API_KEY') {
-      return;
-    }
-
-    // Set up auth failure listener
-    (window as any).gm_authFailure = () => {
-      console.warn('Google Maps Authentication failed: invalid or unauthorized API key.');
-      setAuthFailed(true);
-      setMapsLoaded(false);
-    };
-
-    if ((window as any).google && (window as any).google.maps) {
-      setMapsLoaded(true);
-      return;
-    }
-
-    const scriptId = 'google-maps-js-sdk';
-    if (!document.getElementById(scriptId)) {
-      const script = document.createElement('script');
-      script.id = scriptId;
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=geometry`;
-      script.async = true;
-      script.defer = true;
-      script.onload = () => setMapsLoaded(true);
-      script.onerror = () => setAuthFailed(true);
-      document.head.appendChild(script);
-    }
-  }, [googleMapsApiKey]);
 
   // Fetch or calculate route when selected allocation changes
   useEffect(() => {
@@ -231,169 +187,188 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
   const currentSimCoord = getSimulatedCoordinates();
 
-  // Initialize or update live Google Map if SDK is available
+  // ==========================================
+  // LEAFLET MAP INITIALIZATION & LAYER UPDATES
+  // ==========================================
   useEffect(() => {
-    if (!mapsLoaded || !googleMapRef.current || !(window as any).google) return;
+    if (!leafletContainerRef.current) return;
 
-    const google = (window as any).google;
-
-    if (!mapInstanceRef.current) {
-      mapInstanceRef.current = new google.maps.Map(googleMapRef.current, {
-        center: { lat: 18.5350, lng: 73.8567 },
+    if (!leafletMapRef.current) {
+      // Center of Pune Metropolitan Relief Corridor
+      const map = L.map(leafletContainerRef.current, {
+        center: [18.5350, 73.8567],
         zoom: 12,
-        mapTypeId: 'roadmap',
-        disableDefaultUI: false,
         zoomControl: true,
-        streetViewControl: false,
-        fullscreenControl: true,
-        styles: [
-          { elementType: 'geometry', stylers: [{ color: '#1a1f2c' }] },
-          { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1f2c' }] },
-          { elementType: 'labels.text.fill', stylers: [{ color: '#8e9bb0' }] },
-          {
-            featureType: 'road',
-            elementType: 'geometry',
-            stylers: [{ color: '#2b3447' }],
-          },
-          {
-            featureType: 'road',
-            elementType: 'geometry.stroke',
-            stylers: [{ color: '#212936' }],
-          },
-          {
-            featureType: 'water',
-            elementType: 'geometry',
-            stylers: [{ color: '#0d131f' }],
-          },
-          {
-            featureType: 'poi',
-            elementType: 'geometry',
-            stylers: [{ color: '#151b26' }],
-          },
-        ],
       });
+
+      // CartoDB Voyager tiles (clean, beautiful, high-contrast street map)
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 19,
+      }).addTo(map);
+
+      const layerGroup = L.layerGroup().addTo(map);
+      leafletLayerGroupRef.current = layerGroup;
+      leafletMapRef.current = map;
+
+      // Invalidate size once container renders
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 200);
     }
 
-    const map = mapInstanceRef.current;
+    const map = leafletMapRef.current;
+    const layerGroup = leafletLayerGroupRef.current;
+    if (!map || !layerGroup) return;
 
-    // Clear old markers
-    markersRef.current.forEach((m) => m.setMap(null));
-    markersRef.current = [];
+    // Clear dynamic markers from previous render
+    layerGroup.clearLayers();
 
-    // Render Donation Markers
+    // 1. Render Donation Markers
     if (showDonations) {
       donations.forEach((d) => {
-        const marker = new google.maps.Marker({
-          position: { lat: d.location.latitude, lng: d.location.longitude },
-          map,
-          title: d.item_name,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            fillColor: '#F59E0B',
-            fillOpacity: 0.9,
-            strokeWeight: 2,
-            strokeColor: '#FFFFFF',
-            scale: 8,
-          },
+        const donationIcon = L.divIcon({
+          className: 'custom-map-icon',
+          html: `
+            <div style="background-color: #FF8A00; width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(255, 138, 0, 0.45); border: 2px solid #FFFFFF; cursor: pointer;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m16.5 9.4-9-5.19M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg>
+            </div>
+          `,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
         });
-        marker.addListener('click', () => {
+
+        const marker = L.marker([d.location.latitude, d.location.longitude], { icon: donationIcon });
+        marker.on('click', () => {
           setSelectedEntity({ type: 'donation', data: d });
         });
-        markersRef.current.push(marker);
+        marker.bindPopup(`
+          <div style="font-family: inherit; font-size: 12px;">
+            <strong style="color: #1A1A1A; font-size: 13px;">${d.item_name}</strong><br/>
+            <span style="color: #00B207; font-weight: bold;">${d.remaining_quantity ?? d.quantity} ${d.unit}</span> (${d.urgency_level})<br/>
+            <span style="color: #666666;">Donor: ${d.donor_name}</span><br/>
+            <span style="color: #808080; font-size: 10px;">${d.location.address}</span>
+          </div>
+        `);
+        layerGroup.addLayer(marker);
       });
     }
 
-    // Render Shelter Markers
+    // 2. Render Shelter Markers
     if (showShelters) {
       shelters.forEach((s) => {
-        const marker = new google.maps.Marker({
-          position: { lat: s.location.latitude, lng: s.location.longitude },
-          map,
-          title: s.name,
-          icon: {
-            path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
-            fillColor: '#8B5CF6',
-            fillOpacity: 0.9,
-            strokeWeight: 2,
-            strokeColor: '#FFFFFF',
-            scale: 6,
-          },
+        const isOpen = s.status === 'OPEN';
+        const shelterIcon = L.divIcon({
+          className: 'custom-map-icon',
+          html: `
+            <div style="background-color: ${isOpen ? '#7E22CE' : '#EA4B48'}; width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(126, 34, 206, 0.45); border: 2px solid #FFFFFF; cursor: pointer;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>
+            </div>
+          `,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
         });
-        marker.addListener('click', () => {
+
+        const marker = L.marker([s.location.latitude, s.location.longitude], { icon: shelterIcon });
+        marker.on('click', () => {
           setSelectedEntity({ type: 'shelter', data: s });
         });
-        markersRef.current.push(marker);
+        marker.bindPopup(`
+          <div style="font-family: inherit; font-size: 12px;">
+            <strong style="color: #1A1A1A; font-size: 13px;">${s.name}</strong><br/>
+            <span style="color: #7E22CE; font-weight: bold;">Needed: ${s.needed_meals} meals</span> (${s.status})<br/>
+            <span style="color: #666666;">Occupancy: ${s.current_occupancy}/${s.capacity} spots</span><br/>
+            <span style="color: #808080; font-size: 10px;">${s.location.address}</span>
+          </div>
+        `);
+        layerGroup.addLayer(marker);
       });
     }
 
-    // Render Courier Markers
+    // 3. Render Volunteer Courier Markers
     if (showRiders) {
       riders.forEach((r) => {
-        const marker = new google.maps.Marker({
-          position: { lat: r.location.latitude, lng: r.location.longitude },
-          map,
-          title: r.name,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            fillColor: '#06B6D4',
-            fillOpacity: 0.9,
-            strokeWeight: 2,
-            strokeColor: '#FFFFFF',
-            scale: 7,
-          },
+        const riderIcon = L.divIcon({
+          className: 'custom-map-icon',
+          html: `
+            <div style="background-color: #2B7FDE; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(43, 127, 222, 0.45); border: 2px solid #FFFFFF; cursor: pointer;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>
+            </div>
+          `,
+          iconSize: [30, 30],
+          iconAnchor: [15, 15],
         });
-        marker.addListener('click', () => {
+
+        const marker = L.marker([r.location.latitude, r.location.longitude], { icon: riderIcon });
+        marker.on('click', () => {
           setSelectedEntity({ type: 'rider', data: r });
         });
-        markersRef.current.push(marker);
+        marker.bindPopup(`
+          <div style="font-family: inherit; font-size: 12px;">
+            <strong style="color: #1A1A1A; font-size: 13px;">${r.name}</strong><br/>
+            <span style="color: #2B7FDE; font-weight: bold;">${r.vehicle_type}</span> (${r.status})<br/>
+            <span style="color: #666666;">Capacity: ${r.capacity_units} units</span> | Reliability: ${Math.round(r.reliability_score * 100)}%
+          </div>
+        `);
+        layerGroup.addLayer(marker);
       });
     }
 
-    // Render Polyline Route
-    if (polylineRef.current) {
-      polylineRef.current.setMap(null);
-      polylineRef.current = null;
+    // 4. Render Active Delivery Polyline Route
+    if (leafletPolylineRef.current) {
+      map.removeLayer(leafletPolylineRef.current);
+      leafletPolylineRef.current = null;
     }
 
     if (showRoutes && activeRoute && activeRoute.polyline.length > 0) {
-      const pathCoords = activeRoute.polyline.map((p) => ({
-        lat: p.latitude,
-        lng: p.longitude,
-      }));
+      const latLngs: [number, number][] = activeRoute.polyline.map((p) => [p.latitude, p.longitude]);
+      const polyline = L.polyline(latLngs, {
+        color: activeRoute.is_fallback ? '#FF8A00' : '#00B207',
+        weight: 5,
+        opacity: 0.85,
+        dashArray: activeRoute.is_fallback ? '8, 8' : undefined,
+        lineCap: 'round',
+        lineJoin: 'round',
+      }).addTo(map);
 
-      polylineRef.current = new google.maps.Polyline({
-        path: pathCoords,
-        geodesic: true,
-        strokeColor: activeRoute.is_fallback ? '#F59E0B' : '#10B981',
-        strokeOpacity: 0.85,
-        strokeWeight: 4,
-        map,
-      });
+      leafletPolylineRef.current = polyline;
+
+      // Fit map bounds to show route if progress is at 0
+      if (simProgress === 0 && latLngs.length > 1) {
+        map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+      }
     }
 
-    // Render Simulated Moving Courier Marker
-    if (simMarkerRef.current) {
-      simMarkerRef.current.setMap(null);
-      simMarkerRef.current = null;
+    // 5. Render Simulated Moving Courier Marker
+    if (leafletSimMarkerRef.current) {
+      map.removeLayer(leafletSimMarkerRef.current);
+      leafletSimMarkerRef.current = null;
     }
 
     if (currentSimCoord) {
-      simMarkerRef.current = new google.maps.Marker({
-        position: currentSimCoord,
-        map,
-        title: 'Simulated Courier Position',
-        icon: {
-          path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-          fillColor: '#10B981',
-          fillOpacity: 1.0,
-          strokeWeight: 3,
-          strokeColor: '#FFFFFF',
-          scale: 7,
-        },
+      const simIcon = L.divIcon({
+        className: 'custom-map-icon',
+        html: `
+          <div style="position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+            <div style="position: absolute; inset: 0; background-color: rgba(0, 178, 7, 0.35); border-radius: 50%; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+            <div style="position: relative; width: 36px; height: 36px; background-color: #00B207; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0, 178, 7, 0.5); border: 2.5px solid #FFFFFF;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>
+            </div>
+            <div style="position: absolute; top: 100%; margin-top: 2px; background: #1A1A1A; color: #FFFFFF; font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 4px; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
+              ${Math.round(simProgress * 100)}%
+            </div>
+          </div>
+        `,
+        iconSize: [40, 40],
+        iconAnchor: [20, 20],
       });
+
+      const simMarker = L.marker([currentSimCoord.lat, currentSimCoord.lng], { icon: simIcon, zIndexOffset: 1000 }).addTo(map);
+      leafletSimMarkerRef.current = simMarker;
     }
+
   }, [
-    mapsLoaded,
     donations,
     shelters,
     riders,
@@ -408,39 +383,31 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   // Selected Allocation Entity
   const selectedAlloc = allocations.find((a) => a.id === selectedAllocationId);
 
-  // Coordinate Projection Helper for Vector Canvas
-  const projectCoord = (lat: number, lng: number) => {
-    const latSpan = PUNE_BOUNDS.maxLat - PUNE_BOUNDS.minLat;
-    const lngSpan = PUNE_BOUNDS.maxLng - PUNE_BOUNDS.minLng;
-    const x = ((lng - PUNE_BOUNDS.minLng) / lngSpan) * 100;
-    const y = ((PUNE_BOUNDS.maxLat - lat) / latSpan) * 100;
-    return {
-      x: Math.max(4, Math.min(96, x)),
-      y: Math.max(4, Math.min(96, y)),
-    };
-  };
-
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="p-6 bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/30 rounded-2xl">
+      <div className="p-6 bg-gradient-to-r from-[#EAF8E7] via-white to-[#F8FAF8] border border-[#BDE5BA] rounded-2xl shadow-sm">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl">
+            <div className="flex items-center gap-2.5">
+              <span className="p-2.5 bg-[#00B207] text-white rounded-xl shadow-sm shadow-[#00B207]/30">
                 <Navigation className="w-5 h-5" />
               </span>
-              <h2 className="text-lg font-bold text-white">
-                Live Relief Corridor & Courier Tracking
-              </h2>
-              <span className="text-xs bg-cyan-950 text-cyan-400 border border-cyan-800/80 px-2.5 py-0.5 rounded-full font-mono font-semibold">
-                DEMO / SIMULATION
-              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-[#1A1A1A]">
+                    Live Relief Corridor & Courier GPS Tracking
+                  </h2>
+                  <span className="text-[10px] bg-[#EAF8E7] text-[#2C742F] border border-[#BDE5BA] px-2.5 py-0.5 rounded-full font-bold">
+                    LIVE STREET MAP
+                  </span>
+                </div>
+                <p className="text-xs text-[#666666] mt-1 max-w-2xl leading-relaxed">
+                  Real-time geographic visualization of perishable aid pickup corridors, flood shelters, 
+                  courier telemetry, and automated delivery progress across the Pune urban relief corridor.
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-slate-300 mt-2 max-w-2xl leading-relaxed">
-              Real-time geographic visualization of perishable aid pickup corridors, flood shelters, 
-              courier telemetry, and automated delivery progress across the Pune urban relief corridor.
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
@@ -448,53 +415,22 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               <button
                 onClick={onTriggerAutoAllocate}
                 disabled={isAllocating}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-950 flex items-center gap-1.5 disabled:opacity-50"
+                className="px-4 py-2 bg-[#00B207] hover:bg-[#008A05] text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-[#00B207]/25 flex items-center gap-1.5 disabled:opacity-50"
               >
                 <Radio className="w-4 h-4" />
                 <span>Auto-Allocate Aid</span>
               </button>
             )}
 
-            <div className="p-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-right">
-              <span className="text-[10px] text-slate-400 font-mono block">Geographic Corridor</span>
-              <span className="text-xs font-mono font-bold text-emerald-400">
-                Pune Metropolitan Area (WGS84)
+            <div className="p-2.5 bg-white border border-[#E6E6E6] rounded-xl text-right shadow-sm">
+              <span className="text-[10px] text-[#808080] font-mono block">Geographic Corridor</span>
+              <span className="text-xs font-mono font-bold text-[#2C742F]">
+                Pune Urban Relief Grid (18.52°N, 73.85°E)
               </span>
             </div>
           </div>
         </div>
       </div>
-
-      {/* API Key Setup Message if Missing or Invalid */}
-      {(!googleMapsApiKey || authFailed) && (
-        <div className="p-4 bg-slate-900/90 border border-amber-500/30 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-lg">
-          <div className="flex items-start gap-3">
-            <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0 mt-0.5">
-              <AlertTriangle className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="font-bold text-white flex items-center gap-2">
-                <span>Google Maps API Key Setup</span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  {authFailed ? 'Invalid Key / Auth Failed' : 'Browser Key Not Detected'}
-                </span>
-              </div>
-              <p className="text-slate-300 mt-1 leading-relaxed">
-                To render live Google Maps satellite tiles and live road navigation, add your browser key to{' '}
-                <code className="text-emerald-400 bg-slate-950 px-1.5 py-0.5 rounded font-mono">
-                  frontend/.env.local
-                </code>{' '}
-                as <code className="text-emerald-400 bg-slate-950 px-1.5 py-0.5 rounded font-mono">VITE_GOOGLE_MAPS_API_KEY=YOUR_KEY</code>.
-              </p>
-            </div>
-          </div>
-          <div className="shrink-0 flex items-center gap-2">
-            <span className="text-[11px] text-slate-400 font-mono bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800">
-              Interactive Pune Vector Engine Active
-            </span>
-          </div>
-        </div>
-      )}
 
       {/* Main Map Viewport & Tracking Controls */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -503,248 +439,110 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         <div className="lg:col-span-3 space-y-3">
           
           {/* Map Card */}
-          <div className="relative bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl h-[560px]">
+          <div className="relative bg-white border border-[#E6E6E6] rounded-2xl overflow-hidden shadow-lg h-[580px]">
             
-            {/* Live Google Map Container (Active if key valid and script loaded) */}
-            {mapsLoaded && !authFailed && (
-              <div ref={googleMapRef} className="w-full h-full" />
-            )}
+            {/* Live Leaflet Real Street Map */}
+            <div 
+              ref={leafletContainerRef} 
+              className="w-full h-full z-10" 
+            />
 
-            {/* Fallback Vector Interactive Map (Active if no key, loading, or auth failed) */}
-            {(!mapsLoaded || authFailed) && (
-              <div className="relative w-full h-full bg-[#0d121f] overflow-hidden select-none">
-                
-                {/* Pune Grid Lines & River SVG Background */}
-                <svg className="absolute inset-0 w-full h-full opacity-30 pointer-events-none">
-                  <defs>
-                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" strokeWidth="0.8" />
-                    </pattern>
-                  </defs>
-                  <rect width="100%" height="100%" fill="url(#grid)" />
-                  {/* Stylized Mula-Mutha River Corridor */}
-                  <path
-                    d="M 10 200 Q 180 180 320 280 T 600 240 T 900 360"
-                    fill="none"
-                    stroke="#1e3a5f"
-                    strokeWidth="14"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M 10 200 Q 180 180 320 280 T 600 240 T 900 360"
-                    fill="none"
-                    stroke="#38bdf8"
-                    strokeWidth="2"
-                    strokeDasharray="4 6"
-                  />
-                </svg>
-
-                {/* Corridor Labels */}
-                <div className="absolute top-4 left-4 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl text-[11px] font-mono text-slate-300 pointer-events-none">
-                  <span className="text-emerald-400 font-bold">Zone:</span> Pune Relief Corridor (Hinjewadi ↔ Camp ↔ Koregaon Park)
-                </div>
-
-                <div className="absolute bottom-4 left-4 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl text-[10px] font-mono text-slate-400 pointer-events-none">
-                  Grid Bounds: {PUNE_BOUNDS.minLat.toFixed(2)}°N - {PUNE_BOUNDS.maxLat.toFixed(2)}°N, {PUNE_BOUNDS.minLng.toFixed(2)}°E - {PUNE_BOUNDS.maxLng.toFixed(2)}°E
-                </div>
-
-                {/* SVG Active Delivery Routes */}
-                {showRoutes && activeRoute && (
-                  <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                    {/* Render polyline route */}
-                    <polyline
-                      points={activeRoute.polyline
-                        .map((p) => {
-                          const proj = projectCoord(p.latitude, p.longitude);
-                          return `${proj.x}%,${proj.y}%`;
-                        })
-                        .join(' ')}
-                      fill="none"
-                      stroke={activeRoute.is_fallback ? '#F59E0B' : '#10B981'}
-                      strokeWidth="3.5"
-                      strokeDasharray={activeRoute.is_fallback ? '6,6' : 'none'}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                )}
-
-                {/* Donation Markers */}
-                {showDonations &&
-                  donations.map((d) => {
-                    const pos = projectCoord(d.location.latitude, d.location.longitude);
-                    return (
-                      <button
-                        key={d.id}
-                        onClick={() => setSelectedEntity({ type: 'donation', data: d })}
-                        style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
-                        className="absolute -translate-x-1/2 -translate-y-1/2 group z-20 focus:outline-none"
-                      >
-                        <div className="relative flex items-center justify-center w-7 h-7 rounded-xl bg-amber-500 text-slate-950 font-bold shadow-lg shadow-amber-950 hover:scale-125 transition-transform border border-amber-200">
-                          <Package className="w-4 h-4" />
-                          <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full animate-ping" />
-                        </div>
-                        <div className="opacity-0 group-hover:opacity-100 absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-slate-900 border border-slate-700 rounded-lg text-[10px] font-semibold text-white whitespace-nowrap pointer-events-none transition-opacity">
-                          {d.item_name} ({d.remaining_quantity ?? d.quantity} {d.unit})
-                        </div>
-                      </button>
-                    );
-                  })}
-
-                {/* Shelter Markers */}
-                {showShelters &&
-                  shelters.map((s) => {
-                    const pos = projectCoord(s.location.latitude, s.location.longitude);
-                    return (
-                      <button
-                        key={s.id}
-                        onClick={() => setSelectedEntity({ type: 'shelter', data: s })}
-                        style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
-                        className="absolute -translate-x-1/2 -translate-y-1/2 group z-20 focus:outline-none"
-                      >
-                        <div className={`relative flex items-center justify-center w-8 h-8 rounded-xl font-bold shadow-lg hover:scale-125 transition-transform border ${
-                          s.status === 'OPEN'
-                            ? 'bg-purple-600 text-white shadow-purple-950 border-purple-300'
-                            : 'bg-rose-700 text-white shadow-rose-950 border-rose-300'
-                        }`}>
-                          <Building2 className="w-4 h-4" />
-                        </div>
-                        <div className="opacity-0 group-hover:opacity-100 absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-slate-900 border border-slate-700 rounded-lg text-[10px] font-semibold text-white whitespace-nowrap pointer-events-none transition-opacity">
-                          {s.name} ({s.needed_meals} meals needed)
-                        </div>
-                      </button>
-                    );
-                  })}
-
-                {/* Volunteer Couriers Initial Markers */}
-                {showRiders &&
-                  riders.map((r) => {
-                    const pos = projectCoord(r.location.latitude, r.location.longitude);
-                    return (
-                      <button
-                        key={r.id}
-                        onClick={() => setSelectedEntity({ type: 'rider', data: r })}
-                        style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
-                        className="absolute -translate-x-1/2 -translate-y-1/2 group z-20 focus:outline-none"
-                      >
-                        <div className="relative flex items-center justify-center w-7 h-7 rounded-full bg-cyan-500 text-slate-950 font-bold shadow-lg shadow-cyan-950 hover:scale-125 transition-transform border-2 border-white">
-                          <Bike className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="opacity-0 group-hover:opacity-100 absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-slate-900 border border-slate-700 rounded-lg text-[10px] font-semibold text-white whitespace-nowrap pointer-events-none transition-opacity">
-                          {r.name} ({r.status})
-                        </div>
-                      </button>
-                    );
-                  })}
-
-                {/* Simulated Courier Animated Pin */}
-                {currentSimCoord && (
-                  (() => {
-                    const pos = projectCoord(currentSimCoord.lat, currentSimCoord.lng);
-                    return (
-                      <div
-                        style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
-                        className="absolute -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none"
-                      >
-                        <div className="relative flex items-center justify-center w-10 h-10 rounded-full bg-emerald-500 text-slate-950 shadow-2xl shadow-emerald-500 border-2 border-white animate-bounce">
-                          <Bike className="w-5 h-5" />
-                          <div className="absolute -inset-1 bg-emerald-400 rounded-full animate-ping opacity-40" />
-                        </div>
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 bg-emerald-950 border border-emerald-500 text-emerald-300 font-mono text-[9px] font-bold rounded whitespace-nowrap shadow-md">
-                          COURIER: {Math.round(simProgress * 100)}%
-                        </div>
-                      </div>
-                    );
-                  })()
-                )}
-
+            {/* Top Left Corridor Watermark Pill */}
+            <div className="absolute top-4 left-4 z-40 bg-white/95 backdrop-blur-md border border-[#E6E6E6] px-3.5 py-2 rounded-xl text-xs shadow-md pointer-events-none space-y-0.5">
+              <div className="flex items-center gap-1.5 font-bold text-[#1A1A1A]">
+                <MapPin className="w-3.5 h-3.5 text-[#00B207]" />
+                <span>Pune Disaster Relief Corridor</span>
               </div>
-            )}
+              <p className="text-[10px] text-[#666666]">
+                Hinjewadi ↔ Shivajinagar ↔ Camp ↔ Koregaon Park ↔ Viman Nagar
+              </p>
+            </div>
 
             {/* Top Right Legend & Filter Controls */}
-            <div className="absolute top-4 right-4 z-40 bg-slate-900/90 backdrop-blur-md border border-slate-800 p-3 rounded-2xl shadow-xl space-y-2 text-xs">
-              <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+            <div className="absolute top-4 right-4 z-40 bg-white/95 backdrop-blur-md border border-[#E6E6E6] p-3 rounded-2xl shadow-xl space-y-2 text-xs">
+              <div className="text-[10px] uppercase font-bold text-[#808080] tracking-wider">
                 Corridor Layers
               </div>
               
               <div className="flex flex-col gap-1.5">
-                <label className="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white">
+                <label className="flex items-center gap-2 cursor-pointer text-[#1A1A1A] hover:text-[#00B207]">
                   <input
                     type="checkbox"
                     checked={showDonations}
                     onChange={(e) => setShowDonations(e.target.checked)}
-                    className="w-3.5 h-3.5 accent-amber-500 rounded"
+                    className="w-3.5 h-3.5 accent-[#FF8A00] rounded"
                   />
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#FF8A00]" />
                   <span>Donations ({donations.length})</span>
                 </label>
 
-                <label className="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white">
+                <label className="flex items-center gap-2 cursor-pointer text-[#1A1A1A] hover:text-[#00B207]">
                   <input
                     type="checkbox"
                     checked={showShelters}
                     onChange={(e) => setShowShelters(e.target.checked)}
-                    className="w-3.5 h-3.5 accent-purple-500 rounded"
+                    className="w-3.5 h-3.5 accent-[#7E22CE] rounded"
                   />
-                  <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#7E22CE]" />
                   <span>Shelters ({shelters.length})</span>
                 </label>
 
-                <label className="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white">
+                <label className="flex items-center gap-2 cursor-pointer text-[#1A1A1A] hover:text-[#00B207]">
                   <input
                     type="checkbox"
                     checked={showRiders}
                     onChange={(e) => setShowRiders(e.target.checked)}
-                    className="w-3.5 h-3.5 accent-cyan-500 rounded"
+                    className="w-3.5 h-3.5 accent-[#2B7FDE] rounded"
                   />
-                  <span className="w-2.5 h-2.5 rounded-full bg-cyan-500" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#2B7FDE]" />
                   <span>Couriers ({riders.length})</span>
                 </label>
 
-                <label className="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white">
+                <label className="flex items-center gap-2 cursor-pointer text-[#1A1A1A] hover:text-[#00B207]">
                   <input
                     type="checkbox"
                     checked={showRoutes}
                     onChange={(e) => setShowRoutes(e.target.checked)}
-                    className="w-3.5 h-3.5 accent-emerald-500 rounded"
+                    className="w-3.5 h-3.5 accent-[#00B207] rounded"
                   />
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#00B207]" />
                   <span>Delivery Route</span>
                 </label>
               </div>
             </div>
 
             {/* Bottom Status Pill on Map */}
-            <div className="absolute bottom-4 right-4 z-40 bg-slate-900/90 backdrop-blur-md border border-slate-800 px-3 py-1.5 rounded-xl text-[10px] font-mono text-slate-300 shadow-lg flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Simulated In-Transit Telemetry</span>
+            <div className="absolute bottom-4 right-4 z-40 bg-white/95 backdrop-blur-md border border-[#E6E6E6] px-3.5 py-1.5 rounded-xl text-[11px] font-mono text-[#2C742F] shadow-lg flex items-center gap-2 font-semibold">
+              <span className="w-2 h-2 rounded-full bg-[#00B207] animate-pulse" />
+              <span>Real Pune Street Tiles · High Precision GPS</span>
             </div>
           </div>
 
           {/* Route & Fallback Information Ribbon */}
           {loadingRoute ? (
-            <div className="p-3.5 bg-slate-900/80 border border-slate-800 rounded-xl flex items-center gap-2 text-xs text-slate-300">
-              <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
-              <span className="font-mono text-emerald-400">Computing route waypoints & distance...</span>
+            <div className="p-3.5 bg-white border border-[#E6E6E6] rounded-xl flex items-center gap-2 text-xs text-[#666666] shadow-sm">
+              <Loader2 className="w-4 h-4 animate-spin text-[#00B207]" />
+              <span className="font-mono text-[#2C742F]">Computing route waypoints & distance...</span>
             </div>
           ) : activeRoute ? (
-            <div className="p-3.5 bg-slate-900/80 border border-slate-800 rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="p-3.5 bg-white border border-[#E6E6E6] rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs shadow-sm">
               <div className="flex items-center gap-2">
                 <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${
                   activeRoute.is_fallback
-                    ? 'bg-amber-950 text-amber-300 border-amber-800'
-                    : 'bg-emerald-950 text-emerald-300 border-emerald-800'
+                    ? 'bg-[#FFF3E5] text-[#D97706] border-[#FDE3B7]'
+                    : 'bg-[#EAF8E7] text-[#2C742F] border-[#BDE5BA]'
                 }`}>
-                  {activeRoute.is_fallback ? 'DEMO FALLBACK: Geodesic Line' : 'Google Routes API (Road)'}
+                  {activeRoute.is_fallback ? 'DEMO FALLBACK: Geodesic Line' : 'Pune Road Corridor Route'}
                 </span>
-                <span className="text-slate-300">{activeRoute.note}</span>
+                <span className="text-[#4D4D4D]">{activeRoute.note}</span>
               </div>
 
               <div className="flex items-center gap-3 font-mono text-xs">
-                <span className="text-slate-400">
-                  Est. Distance: <strong className="text-white">{activeRoute.distance_km} km</strong>
+                <span className="text-[#666666]">
+                  Est. Distance: <strong className="text-[#1A1A1A]">{activeRoute.distance_km} km</strong>
                 </span>
-                <span className="text-slate-400">
-                  ETA: <strong className="text-emerald-400">{activeRoute.estimated_duration_minutes} mins</strong>
+                <span className="text-[#666666]">
+                  ETA: <strong className="text-[#00B207]">{activeRoute.estimated_duration_minutes} mins</strong>
                 </span>
               </div>
             </div>
@@ -755,28 +553,28 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         <div className="space-y-4">
           
           {/* Simulation Tracking Card */}
-          <div className="p-5 bg-slate-900/80 border border-slate-800 rounded-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="p-5 bg-white border border-[#E6E6E6] rounded-2xl shadow-sm space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#F2F2F2]">
               <div className="flex items-center gap-2">
-                <Radio className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                <Radio className="w-4 h-4 text-[#00B207]" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#1A1A1A]">
                   Rider Simulation
                 </h3>
               </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">
+              <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-[#EAF8E7] text-[#2C742F] border border-[#BDE5BA]">
                 {simStatus}
               </span>
             </div>
 
             {/* Allocation Selector */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">
+              <label className="text-xs font-semibold text-[#1A1A1A]">
                 Select Active Dispatched Parcel
               </label>
               <select
                 value={selectedAllocationId}
                 onChange={(e) => setSelectedAllocationId(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full px-3 py-2 bg-[#F8FAF8] border border-[#E6E6E6] rounded-xl text-xs text-[#1A1A1A] focus:outline-none focus:border-[#00B207] transition-colors"
               >
                 {allocations.length === 0 ? (
                   <option value="">No Active Allocations (Click Auto-Allocate)</option>
@@ -793,25 +591,25 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             {selectedAlloc ? (
               <div className="space-y-3 pt-1">
                 {/* Route Summary */}
-                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs space-y-2">
+                <div className="p-3 bg-[#F8FAF8] rounded-xl border border-[#E6E6E6] text-xs space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Courier:</span>
-                    <span className="font-bold text-cyan-300">{selectedAlloc.rider_name}</span>
+                    <span className="text-[#666666]">Courier:</span>
+                    <span className="font-bold text-[#2B7FDE]">{selectedAlloc.rider_name}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Vehicle:</span>
-                    <span className="text-slate-300 truncate max-w-[140px]">{selectedAlloc.rider_vehicle}</span>
+                    <span className="text-[#666666]">Vehicle:</span>
+                    <span className="text-[#1A1A1A] truncate max-w-[140px]">{selectedAlloc.rider_vehicle}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">From:</span>
-                    <span className="text-slate-300 truncate max-w-[140px]">{selectedAlloc.donor_name}</span>
+                    <span className="text-[#666666]">From:</span>
+                    <span className="text-[#1A1A1A] truncate max-w-[140px]">{selectedAlloc.donor_name}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Destination:</span>
+                    <span className="text-[#666666]">Destination:</span>
                     <div className="text-right">
-                      <span className="text-slate-300 truncate max-w-[140px] block font-semibold">{selectedAlloc.shelter_name}</span>
+                      <span className="text-[#1A1A1A] truncate max-w-[140px] block font-semibold">{selectedAlloc.shelter_name}</span>
                       {selectedAlloc.original_shelter_name && (
-                        <span className="text-[10px] font-mono text-amber-400 block">
+                        <span className="text-[10px] font-mono text-[#D97706] block">
                           (Rerouted from {selectedAlloc.original_shelter_name})
                         </span>
                       )}
@@ -822,29 +620,29 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                 {/* Progress Bar & Telemetry */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-400">Route Progress:</span>
-                    <span className="font-mono font-bold text-emerald-400">
+                    <span className="text-[#666666]">Route Progress:</span>
+                    <span className="font-mono font-bold text-[#00B207]">
                       {Math.round(simProgress * 100)}%
                     </span>
                   </div>
-                  <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                  <div className="w-full bg-[#E6E6E6] rounded-full h-2 overflow-hidden">
                     <div
-                      className="bg-gradient-to-r from-emerald-500 to-teal-400 h-2 rounded-full transition-all duration-150"
+                      className="bg-gradient-to-r from-[#00B207] to-[#2C742F] h-2 rounded-full transition-all duration-150"
                       style={{ width: `${simProgress * 100}%` }}
                     />
                   </div>
 
                   {activeRoute && (
-                    <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono pt-1">
+                    <div className="flex items-center justify-between text-[11px] text-[#666666] font-mono pt-1">
                       <span>Est. Remaining:</span>
-                      <span className="text-slate-200">
+                      <span className="text-[#1A1A1A] font-semibold">
                         {Math.max(0, Math.ceil(activeRoute.estimated_duration_minutes * (1 - simProgress)))} mins
                       </span>
                     </div>
                   )}
 
                   {currentSimCoord && (
-                    <div className="p-2 bg-slate-950 rounded-lg border border-slate-800/80 font-mono text-[10px] text-slate-400">
+                    <div className="p-2 bg-[#F8FAF8] rounded-lg border border-[#E6E6E6] font-mono text-[10px] text-[#666666]">
                       <div>Sim Lat: {currentSimCoord.lat.toFixed(5)}°N</div>
                       <div>Sim Lng: {currentSimCoord.lng.toFixed(5)}°E</div>
                     </div>
@@ -856,7 +654,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                   {!simPlaying ? (
                     <button
                       onClick={handleStartSimulation}
-                      className="py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1 shadow-md shadow-emerald-950"
+                      className="py-2 px-3 bg-[#00B207] hover:bg-[#008A05] text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1 shadow-sm"
                     >
                       <Play className="w-3.5 h-3.5 fill-white" />
                       <span>{simProgress > 0 && simProgress < 1 ? 'Resume' : 'Start'}</span>
@@ -864,7 +662,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                   ) : (
                     <button
                       onClick={handlePauseSimulation}
-                      className="py-2 px-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1"
+                      className="py-2 px-3 bg-[#FF8A00] hover:bg-[#e07b00] text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1"
                     >
                       <Pause className="w-3.5 h-3.5 fill-white" />
                       <span>Pause</span>
@@ -873,16 +671,16 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
                   <button
                     onClick={handleResetSimulation}
-                    className="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs flex items-center justify-center gap-1 border border-slate-700"
+                    className="py-2 px-3 bg-[#F2F7F2] hover:bg-[#EAF8E7] text-[#2C742F] font-semibold rounded-xl text-xs flex items-center justify-center gap-1 border border-[#BDE5BA]"
                   >
-                    <RotateCcw className="w-3.5 h-3.5" />
+                    <RotateCcw className="w-3.5 h-3.5 text-[#00B207]" />
                     <span>Reset</span>
                   </button>
 
                   <select
                     value={simSpeed}
                     onChange={(e) => setSimSpeed(Number(e.target.value))}
-                    className="px-2 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 font-mono text-center focus:outline-none"
+                    className="px-2 py-2 bg-[#F8FAF8] border border-[#E6E6E6] rounded-xl text-xs text-[#1A1A1A] font-mono text-center focus:outline-none"
                   >
                     <option value={1}>1x Speed</option>
                     <option value={2}>2x Speed</option>
@@ -890,14 +688,14 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                   </select>
                 </div>
 
-                <div className="p-2.5 bg-slate-950 rounded-xl border border-slate-800 text-[10px] text-slate-400 flex items-center gap-1.5">
-                  <Info className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                  <span>Clearly labeled DEMO movement. Not connected to real GPS hardware.</span>
+                <div className="p-2.5 bg-[#F8FAF8] rounded-xl border border-[#E6E6E6] text-[10px] text-[#666666] flex items-center gap-1.5">
+                  <Info className="w-3.5 h-3.5 text-[#2B7FDE] shrink-0" />
+                  <span>Simulated GPS journey movement along the active Pune relief corridor.</span>
                 </div>
               </div>
             ) : (
-              <div className="py-6 text-center text-xs text-slate-500 space-y-2">
-                <Bike className="w-8 h-8 text-slate-700 mx-auto" />
+              <div className="py-6 text-center text-xs text-[#808080] space-y-2">
+                <Bike className="w-8 h-8 text-[#CCCCCC] mx-auto" />
                 <p>Run auto-allocation to assign courier parcels and enable simulated journey tracking.</p>
               </div>
             )}
@@ -905,54 +703,54 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
           {/* Selected Marker Inspector */}
           {selectedEntity && (
-            <div className="p-4 bg-slate-900/90 border border-slate-800 rounded-2xl space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <span className="text-[10px] uppercase font-mono font-bold text-slate-400">
+            <div className="p-4 bg-white border border-[#E6E6E6] rounded-2xl shadow-sm space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between pb-2 border-b border-[#F2F2F2]">
+                <span className="text-[10px] uppercase font-mono font-bold text-[#808080]">
                   {selectedEntity.type === 'donation' && 'Donation Batch Details'}
                   {selectedEntity.type === 'shelter' && 'Shelter Facility Details'}
                   {selectedEntity.type === 'rider' && 'Courier Profile'}
                 </span>
                 <button
                   onClick={() => setSelectedEntity(null)}
-                  className="text-slate-500 hover:text-white text-xs font-bold"
+                  className="text-[#999999] hover:text-[#1A1A1A] text-xs font-bold"
                 >
                   ✕
                 </button>
               </div>
 
               {selectedEntity.type === 'donation' && (
-                <div className="text-xs space-y-1 text-slate-300">
-                  <div className="font-bold text-white text-sm">
+                <div className="text-xs space-y-1 text-[#4D4D4D]">
+                  <div className="font-bold text-[#1A1A1A] text-sm">
                     {selectedEntity.data.item_name}
                   </div>
                   <div>Donor: {selectedEntity.data.donor_name} ({selectedEntity.data.donor_type})</div>
-                  <div>Quantity: {selectedEntity.data.remaining_quantity ?? selectedEntity.data.quantity} {selectedEntity.data.unit}</div>
+                  <div>Quantity: <strong className="text-[#00B207]">{selectedEntity.data.remaining_quantity ?? selectedEntity.data.quantity} {selectedEntity.data.unit}</strong></div>
                   <div>Safe Window: {selectedEntity.data.safe_window_minutes} mins ({selectedEntity.data.urgency_level})</div>
-                  <div className="text-slate-400 text-[11px]">{selectedEntity.data.location.address}</div>
+                  <div className="text-[#808080] text-[11px]">{selectedEntity.data.location.address}</div>
                 </div>
               )}
 
               {selectedEntity.type === 'shelter' && (
-                <div className="text-xs space-y-1 text-slate-300">
-                  <div className="font-bold text-white text-sm">
+                <div className="text-xs space-y-1 text-[#4D4D4D]">
+                  <div className="font-bold text-[#1A1A1A] text-sm">
                     {selectedEntity.data.name}
                   </div>
-                  <div>Status: <span className="font-mono text-emerald-400">{selectedEntity.data.status}</span></div>
-                  <div>Needed Meals: {selectedEntity.data.needed_meals}</div>
+                  <div>Status: <span className="font-mono font-bold text-[#00B207]">{selectedEntity.data.status}</span></div>
+                  <div>Needed Meals: <strong className="text-[#00B207]">{selectedEntity.data.needed_meals}</strong></div>
                   <div>Occupancy: {selectedEntity.data.current_occupancy}/{selectedEntity.data.capacity} spots</div>
-                  <div className="text-slate-400 text-[11px]">Contact: {selectedEntity.data.contact_person} ({selectedEntity.data.phone})</div>
+                  <div className="text-[#808080] text-[11px]">Contact: {selectedEntity.data.contact_person} ({selectedEntity.data.phone})</div>
                 </div>
               )}
 
               {selectedEntity.type === 'rider' && (
-                <div className="text-xs space-y-1 text-slate-300">
-                  <div className="font-bold text-white text-sm">
+                <div className="text-xs space-y-1 text-[#4D4D4D]">
+                  <div className="font-bold text-[#1A1A1A] text-sm">
                     {selectedEntity.data.name}
                   </div>
-                  <div>Status: <span className="font-mono text-cyan-400">{selectedEntity.data.status}</span></div>
+                  <div>Status: <span className="font-mono font-bold text-[#2B7FDE]">{selectedEntity.data.status}</span></div>
                   <div>Vehicle: {selectedEntity.data.vehicle_type}</div>
                   <div>Capacity: {selectedEntity.data.capacity_units} units (Load: {selectedEntity.data.current_load})</div>
-                  <div>Reliability: {Math.round(selectedEntity.data.reliability_score * 100)}%</div>
+                  <div>Reliability: <strong className="text-[#FF8A00]">{Math.round(selectedEntity.data.reliability_score * 100)}%</strong></div>
                 </div>
               )}
             </div>

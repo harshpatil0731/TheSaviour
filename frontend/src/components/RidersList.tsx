@@ -33,41 +33,41 @@ export const RidersList: React.FC<RidersListProps> = ({
     switch (status) {
       case 'AVAILABLE':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#EAF8E7] text-[#2C742F] border border-[#BDE5BA] text-[11px] font-bold">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00B207] animate-pulse" />
             AVAILABLE
           </span>
         );
       case 'EN_ROUTE_PICKUP':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 text-xs font-semibold">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#EBF4FE] text-[#2B7FDE] border border-[#C6E0FC] text-[11px] font-bold">
             <Clock className="w-3 h-3" />
-            EN ROUTE PICKUP
+            PICKUP ROUTE
           </span>
         );
       case 'EN_ROUTE_DROP':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-semibold">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#FFF3E5] text-[#D97706] border border-[#FDE3B7] text-[11px] font-bold">
             <Clock className="w-3 h-3" />
-            EN ROUTE DROP
+            DROP ROUTE
           </span>
         );
       case 'OFFERED':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-400 text-xs font-semibold">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#F3E8FF] text-[#7E22CE] border border-[#E9D5FF] text-[11px] font-bold">
             OFFERED
           </span>
         );
       case 'SUSPECT':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs font-semibold">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#FDE8E8] text-[#EA4B48] border border-[#F8B4B4] text-[11px] font-bold">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#EA4B48] animate-ping" />
             HEARTBEAT SILENT
           </span>
         );
       default:
         return (
-          <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700 text-xs font-medium">
+          <span className="px-2.5 py-1 rounded-full bg-[#F3F4F6] text-[#4B5563] text-[11px] font-medium">
             {status}
           </span>
         );
@@ -77,31 +77,33 @@ export const RidersList: React.FC<RidersListProps> = ({
   return (
     <div className="space-y-6">
       {/* Header and Filter */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-900/60 p-5 rounded-2xl border border-slate-800">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-[#E6E6E6] shadow-sm">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <Bike className="w-5 h-5 text-emerald-400" />
-              Volunteer Two-Wheeler Fleet
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-[#EAF8E7] rounded-xl text-[#00B207]">
+              <Bike className="w-5 h-5" />
+            </div>
+            <h2 className="text-lg font-bold text-[#1A1A1A] tracking-tight">
+              Volunteer Two-Wheeler Couriers
             </h2>
-            <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              {riders.length} Couriers
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#EAF8E7] text-[#2C742F] border border-[#BDE5BA]">
+              {riders.length} Active Couriers
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-[#666666] mt-1">
             Real-time tracking of active couriers with adaptive lease telemetry and carrying capacity management.
           </p>
         </div>
 
-        <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+        <div className="flex flex-wrap items-center gap-1 bg-[#F5F5F5] p-1 rounded-xl border border-[#E6E6E6] text-xs">
           {['ALL', 'AVAILABLE', 'EN_ROUTE_PICKUP', 'EN_ROUTE_DROP', 'SUSPECT'].map((st) => (
             <button
               key={st}
               onClick={() => setFilter(st)}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg font-medium text-xs transition-colors ${
                 filter === st
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                  ? 'bg-[#00B207] text-white shadow-sm font-semibold'
+                  : 'text-[#666666] hover:text-[#1A1A1A] hover:bg-white'
               }`}
             >
               {st.replace('_', ' ')}
@@ -119,23 +121,23 @@ export const RidersList: React.FC<RidersListProps> = ({
           onAction={() => setFilter('ALL')}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map((rider) => (
             <div
               key={rider.id}
-              className="p-5 bg-slate-900/80 border border-slate-800 rounded-2xl flex flex-col justify-between hover:border-slate-700 transition-all shadow-sm"
+              className="p-5 bg-white border border-[#E6E6E6] hover:border-[#00B207] rounded-2xl flex flex-col justify-between hover:shadow-lg transition-all shadow-sm"
             >
               <div>
                 <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center text-slate-200 font-bold border border-slate-700">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#EAF8E7] text-[#00B207] flex items-center justify-center font-bold text-base border border-[#BDE5BA]">
                       {rider.name.charAt(0)}
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-white">
+                      <h3 className="text-sm font-bold text-[#1A1A1A]">
                         {rider.name}
                       </h3>
-                      <span className="text-[11px] text-slate-400 font-mono">
+                      <span className="text-[11px] text-[#808080] font-mono">
                         {rider.id}
                       </span>
                     </div>
@@ -144,22 +146,22 @@ export const RidersList: React.FC<RidersListProps> = ({
                 </div>
 
                 {/* Vehicle & Capacity */}
-                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-2 mt-3">
+                <div className="bg-[#F8FAF8] p-3 rounded-xl border border-[#E6E6E6] space-y-2 mt-3.5">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-400">Vehicle:</span>
-                    <span className="text-slate-200 font-medium truncate max-w-[160px]">
+                    <span className="text-[#666666]">Vehicle:</span>
+                    <span className="text-[#1A1A1A] font-semibold truncate max-w-[160px]">
                       {rider.vehicle_type}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-400">Max Capacity:</span>
-                    <span className="text-emerald-400 font-bold font-mono">
+                    <span className="text-[#666666]">Max Capacity:</span>
+                    <span className="text-[#00B207] font-bold font-mono">
                       {rider.capacity_units} units / meals
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-400">Current Load:</span>
-                    <span className="text-slate-300 font-mono">
+                    <span className="text-[#666666]">Current Load:</span>
+                    <span className="text-[#1A1A1A] font-mono font-medium">
                       {rider.current_load} units
                     </span>
                   </div>
@@ -168,50 +170,50 @@ export const RidersList: React.FC<RidersListProps> = ({
                 {/* Reliability Score */}
                 <div className="mt-4">
                   <div className="flex items-center justify-between text-xs mb-1.5">
-                    <span className="text-slate-400 flex items-center gap-1">
-                      <Award className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="text-[#666666] flex items-center gap-1 font-medium">
+                      <Award className="w-3.5 h-3.5 text-[#FF8A00]" />
                       Reliability Score:
                     </span>
-                    <span className="font-mono font-bold text-amber-400">
+                    <span className="font-mono font-bold text-[#FF8A00]">
                       {Math.round(rider.reliability_score * 100)}%
                     </span>
                   </div>
-                  <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                  <div className="w-full bg-[#E6E6E6] rounded-full h-1.5 overflow-hidden">
                     <div
-                      className="bg-gradient-to-r from-amber-500 to-emerald-400 h-1.5 rounded-full"
+                      className="bg-gradient-to-r from-[#FF8A00] to-[#00B207] h-1.5 rounded-full"
                       style={{ width: `${rider.reliability_score * 100}%` }}
                     />
                   </div>
                 </div>
 
                 {/* Location and Contact */}
-                <div className="mt-4 space-y-1.5 text-xs text-slate-400 pt-3 border-t border-slate-800">
+                <div className="mt-4 space-y-1.5 text-xs text-[#666666] pt-3 border-t border-[#F2F2F2]">
                   <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <MapPin className="w-3.5 h-3.5 text-[#808080] shrink-0" />
                     <span className="truncate">{rider.location.name}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>{rider.phone}</span>
+                    <Phone className="w-3.5 h-3.5 text-[#808080] shrink-0" />
+                    <span className="font-medium text-[#1A1A1A]">{rider.phone}</span>
                   </div>
                 </div>
               </div>
 
               {/* Action & Bottom Heartbeat Footer */}
-              <div className="mt-4 pt-3 border-t border-slate-800 space-y-2.5">
-                <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
-                  <span className="flex items-center gap-1 text-emerald-400/90">
-                    <Activity className="w-3 h-3 animate-pulse" />
+              <div className="mt-4 pt-3 border-t border-[#F2F2F2] space-y-2.5">
+                <div className="flex items-center justify-between text-[11px] text-[#808080] font-mono">
+                  <span className="flex items-center gap-1 text-[#2C742F]">
+                    <Activity className="w-3 h-3 text-[#00B207] animate-pulse" />
                     Heartbeat: {rider.last_heartbeat_at.slice(11, 19)} UTC
                   </span>
-                  <span>{rider.completed_deliveries} done</span>
+                  <span className="font-semibold text-[#1A1A1A]">{rider.completed_deliveries} deliveries</span>
                 </div>
 
                 <button
                   onClick={() => setEditingRider(rider)}
-                  className="w-full py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 flex items-center justify-center gap-1.5 transition-colors"
+                  className="w-full py-2 px-3 bg-[#F2F7F2] hover:bg-[#EAF8E7] text-[#2C742F] border border-[#BDE5BA] text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-colors"
                 >
-                  <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-400" />
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-[#00B207]" />
                   <span>Update Availability & Capacity</span>
                 </button>
               </div>
