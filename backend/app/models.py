@@ -234,3 +234,45 @@ class CompatibilityCheckResult(BaseModel):
     reasons: List[str] = Field(default_factory=list)
     warnings: List[str] = Field(default_factory=list)
     max_acceptable_quantity: int
+
+
+# --- Phase 3: Automatic Allocation and Batch Splitting Models ---
+
+class Allocation(BaseModel):
+    id: str
+    donation_id: str
+    donation_item_name: str
+    donation_category: DonationCategory
+    donor_name: str
+    donor_location: str
+    shelter_id: str
+    shelter_name: str
+    shelter_location: str
+    rider_id: str
+    rider_name: str
+    rider_vehicle: str
+    quantity: int
+    unit: str
+    status: str = "ALLOCATED"
+    reason: str
+    created_at: str
+
+
+class SkippedDonation(BaseModel):
+    donation_id: str
+    item_name: str
+    category: DonationCategory
+    unallocated_quantity: int
+    unit: str
+    reason: str
+
+
+class AutoAllocationResponse(BaseModel):
+    allocations: List[Allocation]
+    skipped_donations: List[SkippedDonation]
+    total_donations_processed: int
+    total_quantity_allocated: int
+    total_allocations_created: int
+    unallocated_donations_remaining: int
+    message: str
+

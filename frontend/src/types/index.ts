@@ -184,3 +184,44 @@ export interface CompatibilityResult {
   warnings: string[];
   max_acceptable_quantity: number;
 }
+
+// --- Phase 3: Automatic Allocation Types ---
+
+export interface Allocation {
+  id: string;
+  donation_id: string;
+  donation_item_name: string;
+  donation_category: DonationCategory;
+  donor_name: string;
+  donor_location: string;
+  shelter_id: string;
+  shelter_name: string;
+  shelter_location: string;
+  rider_id: string;
+  rider_name: string;
+  rider_vehicle: string;
+  quantity: number;
+  unit: string;
+  status: string;
+  reason: string;
+  created_at: string;
+}
+
+export interface SkippedDonation {
+  donation_id: string;
+  item_name: string;
+  category: DonationCategory;
+  unallocated_quantity: number;
+  unit: string;
+  reason: string;
+}
+
+export interface AutoAllocationResponse {
+  allocations: Allocation[];
+  skipped_donations: SkippedDonation[];
+  total_donations_processed: number;
+  total_quantity_allocated: number;
+  total_allocations_created: number;
+  unallocated_donations_remaining: number;
+  message: string;
+}

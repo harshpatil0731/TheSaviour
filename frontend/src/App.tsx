@@ -40,6 +40,9 @@ import {
   DonationCreateModal 
 } from './components/DonationCreateModal';
 import { 
+  AllocationResultsModal 
+} from './components/AllocationResultsModal';
+import { 
   api 
 } from './services/api';
 import { 
@@ -47,11 +50,15 @@ import {
   DashboardResponse, 
   Donation, 
   Rider, 
-  Shelter 
+  Shelter, 
+  Allocation, 
+  AutoAllocationResponse 
 } from './types';
 import { 
   ShieldCheck, 
-  Plus 
+  Plus, 
+  Play, 
+  Loader2 
 } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -60,6 +67,7 @@ export const App: React.FC = () => {
   const [donations, setDonations] = useState<Donation[]>([]);
   const [riders, setRiders] = useState<Rider[]>([]);
   const [shelters, setShelters] = useState<Shelter[]>([]);
+  const [allocations, setAllocations] = useState<Allocation[]>([]);
   
   const [loading, setLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -67,9 +75,13 @@ export const App: React.FC = () => {
   const [backendHealthy, setBackendHealthy] = useState<boolean | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
-  // Phase 2 Interactive States
+  // Phase 2 & 3 Interactive States
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [showCreateDonationModal, setShowCreateDonationModal] = useState<boolean>(false);
+  
+  // Phase 3 Auto-Allocation State
+  const [isAllocating, setIsAllocating] = useState<boolean>(false);
+  const [allocationResult, setAllocationResult] = useState<AutoAllocationResponse | null>(null);
 
   const loadData = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
@@ -78,12 +90,13 @@ export const App: React.FC = () => {
 
     try {
       // Parallel fetch to backend
-      const [healthRes, dashRes, donRes, ridRes, sheRes] = await Promise.all([
+      const [healthRes, dashRes, donRes, ridRes, sheRes, allocRes] = await Promise.all([
         api.getHealth().catch(() => null),
         api.getDashboard(),
         api.getDonations(),
         api.getRiders(),
         api.getShelters(),
+        api.getAllocations().catch(() => []),
       ]);
 
       setBackendHealthy(healthRes?.status === 'healthy');
@@ -91,6 +104,7 @@ export const App: React.FC = () => {
       setDonations(donRes);
       setRiders(ridRes);
       setShelters(sheRes);
+      setAllocations(allocRes);
       setLastUpdated(new Date().toLocaleTimeString());
     } catch (err: any) {
       console.error('Failed to fetch data from TheSaviour API:', err);
@@ -106,6 +120,44 @@ export const App: React.FC = () => {
     loadData();
   }, [loadData]);
 
+  // Phase 3 Auto-Allocation Action
+  const handleTriggerAutoAllocate = async () => {
+    setIsAllocating(true);
+    try {
+      const res = await api.triggerAutoAllocation();
+      setAllocationResult(res);
+
+      if (res.total_allocations_created > 0) {
+        setToast({
+          id: Date.now().toString(),
+          type: 'success',
+          title: 'Auto-Allocation Completed',
+          message: `Created ${res.total_allocations_created} courier allocations dishing ${res.total_quantity_allocated} aid units.`,
+        });
+      } else {
+        setToast({
+          id: Date.now().toString(),
+          type: 'info',
+          title: 'Allocation Cycle Checked',
+          message: res.message,
+        });
+      }
+
+      // Silent refresh to update metrics, unallocated counters, and active dispatches
+      await loadData(true);
+    } catch (err: any) {
+      console.error('Failed to execute auto allocation:', err);
+      setToast({
+        id: Date.now().toString(),
+        type: 'error',
+        title: 'Auto-Allocation Error',
+        message: err?.message || 'Failed to execute allocation algorithm.',
+      });
+    } finally {
+      setIsAllocating(false);
+    }
+  };
+
   // Phase 2 Mutation Handlers
   const handleDonationCreated = (newDonation: Donation) => {
     setDonations((prev) => [newDonation, ...prev]);
@@ -115,7 +167,6 @@ export const App: React.FC = () => {
       title: 'Donation Batch Registered',
       message: `${newDonation.quantity} ${newDonation.unit} of "${newDonation.item_name}" registered with safe arrival window of ${newDonation.safe_window_minutes} mins.`,
     });
-    // Silent refresh to update dashboard counters & recent activity
     loadData(true);
   };
 
@@ -180,7 +231,7 @@ export const App: React.FC = () => {
         {loading && !dashboardData ? (
           <LoadingState
             message="Initializing TheSaviour Logistics Grid..."
-            subtext="Querying Pune emergency in-memory repositories (/api/dashboard, /api/donations, /api/riders, /api/shelters)"
+            subtext="Querying Pune emergency in-memory repositories (/api/dashboard, /api/donations, /api/riders, /api/shelters, /api/allocations)"
           />
         ) : (
           <div>
@@ -211,12 +262,31 @@ export const App: React.FC = () => {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
+                      {/* Phase 3 Action Button: Auto-Allocate Aid */}
+                      <button
+                        onClick={handleTriggerAutoAllocate}
+                        disabled={isAllocating}
+                        className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-emerald-950 flex items-center gap-1.5"
+                      >
+                        {isAllocating ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Allocating Fleet...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Play className="w-4 h-4 fill-white" />
+                            <span>Auto-Allocate Aid</span>
+                          </>
+                        )}
+                      </button>
+
                       <button
                         onClick={() => setShowCreateDonationModal(true)}
-                        className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-emerald-950 flex items-center gap-1.5"
+                        className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-all border border-slate-700 flex items-center gap-1.5"
                       >
-                        <Plus className="w-4 h-4" />
-                        <span>Register Donation Batch</span>
+                        <Plus className="w-4 h-4 text-emerald-400" />
+                        <span>Register Batch</span>
                       </button>
 
                       <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-right">
@@ -345,9 +415,13 @@ export const App: React.FC = () => {
               />
             )}
 
-            {/* Tab 5: Dispatch */}
+            {/* Tab 5: Dispatch Console (Phase 3 active console) */}
             {currentTab === 'dispatch' && (
-              <DispatchPreview />
+              <DispatchPreview 
+                allocations={allocations}
+                onTriggerAutoAllocate={handleTriggerAutoAllocate}
+                isAllocating={isAllocating}
+              />
             )}
 
             {/* Tab 6: Simulation */}
@@ -368,6 +442,14 @@ export const App: React.FC = () => {
         onSuccess={handleDonationCreated}
       />
 
+      {/* Phase 3 Auto-Allocation Results Modal */}
+      <AllocationResultsModal
+        result={allocationResult}
+        isOpen={!!allocationResult}
+        onClose={() => setAllocationResult(null)}
+        onViewDispatch={() => setCurrentTab('dispatch')}
+      />
+
       {/* Footer */}
       <footer className="mt-auto border-t border-slate-800/80 bg-slate-950 py-6 text-xs text-slate-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -376,7 +458,7 @@ export const App: React.FC = () => {
             <span className="text-slate-400">•</span>
             <span>Civic Aid Coordination Platform</span>
             <span className="text-slate-400">•</span>
-            <span className="font-mono text-emerald-400">Phase 2 Operational</span>
+            <span className="font-mono text-emerald-400">Phase 3 Auto-Allocation Active</span>
           </div>
           <div className="flex items-center gap-4 text-slate-400 font-mono text-[11px]">
             <span>FastAPI Backend: http://localhost:8000</span>

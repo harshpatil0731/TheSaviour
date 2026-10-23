@@ -10,6 +10,8 @@ import {
   RiderUpdateInput,
   RiderStatus,
   CompatibilityResult,
+  Allocation,
+  AutoAllocationResponse,
 } from '../types';
 
 // Supports relative path (Vite proxy) or direct backend endpoint
@@ -162,5 +164,19 @@ export const api = {
       body: JSON.stringify(payload),
     });
     return handleResponse<CompatibilityResult>(res);
+  },
+
+  // --- Phase 3: Auto-Allocation and Batch Splitting ---
+  async triggerAutoAllocation(): Promise<AutoAllocationResponse> {
+    const res = await fetch(`${API_BASE_URL}/api/allocations/auto`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return handleResponse<AutoAllocationResponse>(res);
+  },
+
+  async getAllocations(): Promise<Allocation[]> {
+    const res = await fetch(`${API_BASE_URL}/api/allocations`);
+    return handleResponse<Allocation[]>(res);
   },
 };

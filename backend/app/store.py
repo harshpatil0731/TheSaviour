@@ -14,6 +14,7 @@ from app.models import (
     Shelter,
     ShelterCapabilities,
     ActivityEvent,
+    Allocation,
     DashboardSummary,
     DashboardResponse,
     HealthResponse,
@@ -36,6 +37,7 @@ class InMemoryStore:
         self._riders: Dict[str, Rider] = {}
         self._shelters: Dict[str, Shelter] = {}
         self._activities: List[ActivityEvent] = []
+        self._allocations: List[Allocation] = []
         self.reset_to_demo_data()
 
     def reset_to_demo_data(self) -> None:
@@ -44,6 +46,7 @@ class InMemoryStore:
         self._riders = {r.id: r for r in get_demo_riders()}
         self._shelters = {s.id: s for s in get_demo_shelters()}
         self._activities = list(get_demo_activities())
+        self._allocations = []
 
     # --- Donations ---
     def list_donations(self, urgency: Optional[str] = None, status: Optional[str] = None) -> List[Donation]:
@@ -279,6 +282,13 @@ class InMemoryStore:
         )
         return updated_shelter
 
+    # --- Allocations ---
+    def record_allocation(self, allocation: Allocation) -> None:
+        self._allocations.insert(0, allocation)
+
+    def list_allocations(self) -> List[Allocation]:
+        return list(self._allocations)
+
     # --- Activities ---
     def list_activities(self, limit: int = 10) -> List[ActivityEvent]:
         return self._activities[:limit]
@@ -296,7 +306,7 @@ class InMemoryStore:
 
         available_donations = [d for d in donations if d.status in (DonationStatus.AVAILABLE, DonationStatus.PARTIALLY_ASSIGNED)]
         urgent_donations = [d for d in donations if d.urgency_level in (UrgencyLevel.CRITICAL, UrgencyLevel.HIGH)]
-        active_deliveries = [d for d in donations if d.status in (DonationStatus.IN_TRANSIT, DonationStatus.PARTIALLY_ASSIGNED)]
+        active_deliveries = [d for d in donations if d.status in (DonationStatus.IN_TRANSIT, DonationStatus.PARTIALLY_ASSIGNED, DonationStatus.FULLY_ASSIGNED)]
         available_riders = [r for r in riders if r.status == RiderStatus.AVAILABLE]
 
         total_meals = sum((d.remaining_quantity if d.remaining_quantity is not None else d.quantity) for d in available_donations if d.unit == "meals")
@@ -328,13 +338,14 @@ class InMemoryStore:
         return HealthResponse(
             status="healthy",
             service="TheSaviour Civic Aid Dispatch API",
-            version="1.0.0-phase1",
+            version="3.0.0-phase3",
             timestamp=datetime.now(timezone.utc).isoformat(),
             counts={
                 "donations": len(self._donations),
                 "riders": len(self._riders),
                 "shelters": len(self._shelters),
                 "activities": len(self._activities),
+                "allocations": len(self._allocations),
             },
         )
 
