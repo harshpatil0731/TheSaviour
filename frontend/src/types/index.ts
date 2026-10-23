@@ -1,0 +1,137 @@
+export type UrgencyLevel = 'CRITICAL' | 'HIGH' | 'MODERATE' | 'STABLE';
+
+export type DonationCategory = 
+  | 'cooked_meal' 
+  | 'raw_ration_kit' 
+  | 'infant_formula' 
+  | 'refrigerated_medicine' 
+  | 'bakery_produce';
+
+export type DonationStatus = 
+  | 'AVAILABLE' 
+  | 'PARTIALLY_ASSIGNED' 
+  | 'FULLY_ASSIGNED' 
+  | 'IN_TRANSIT' 
+  | 'DELIVERED' 
+  | 'CANCELLED';
+
+export type RiderStatus = 
+  | 'AVAILABLE' 
+  | 'OFFERED' 
+  | 'EN_ROUTE_PICKUP' 
+  | 'EN_ROUTE_DROP' 
+  | 'OFFLINE' 
+  | 'SUSPECT';
+
+export type ShelterStatus = 'OPEN' | 'AT_CAPACITY' | 'CLOSED';
+
+export interface Location {
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+}
+
+export interface ShelterCapabilities {
+  has_water: boolean;
+  has_fuel: boolean;
+  has_refrigeration: boolean;
+}
+
+export interface Donation {
+  id: string;
+  donor_id: string;
+  donor_name: string;
+  donor_type: string;
+  location: Location;
+  item_name: string;
+  category: DonationCategory;
+  quantity: number;
+  unit: string;
+  ready_at: string;
+  expires_at: string;
+  safe_window_minutes: number;
+  urgency_level: UrgencyLevel;
+  status: DonationStatus;
+  requirements: string[];
+  suggested_parcels: number;
+  notes?: string;
+  created_at: string;
+}
+
+export interface Rider {
+  id: string;
+  name: string;
+  phone: string;
+  vehicle_type: string;
+  capacity_units: number;
+  current_load: number;
+  status: RiderStatus;
+  location: Location;
+  reliability_score: number;
+  completed_deliveries: number;
+  last_heartbeat_at: string;
+  is_active: boolean;
+}
+
+export interface Shelter {
+  id: string;
+  name: string;
+  contact_person: string;
+  phone: string;
+  location: Location;
+  status: ShelterStatus;
+  capacity: number;
+  current_occupancy: number;
+  needed_meals: number;
+  capabilities: ShelterCapabilities;
+  needed_categories: DonationCategory[];
+  active_holds: number;
+}
+
+export interface ActivityEvent {
+  id: string;
+  timestamp: string;
+  event_type: string;
+  title: string;
+  description: string;
+  severity: 'info' | 'warning' | 'success' | 'danger';
+  entity_id?: string;
+  metadata?: Record<string, string>;
+}
+
+export interface DashboardSummary {
+  available_donations_count: number;
+  total_meals_available: number;
+  active_deliveries_count: number;
+  urgent_batches_count: number;
+  available_riders_count: number;
+  total_riders_count: number;
+  active_shelters_count: number;
+  total_shelter_capacity: number;
+  current_shelter_occupancy: number;
+}
+
+export interface DashboardResponse {
+  summary: DashboardSummary;
+  urgent_donations: Donation[];
+  recent_activities: ActivityEvent[];
+  top_riders: Rider[];
+  open_shelters: Shelter[];
+}
+
+export interface HealthResponse {
+  status: string;
+  service: string;
+  version: string;
+  timestamp: string;
+  counts: Record<string, number>;
+}
+
+export type NavTab = 
+  | 'overview' 
+  | 'donations' 
+  | 'riders' 
+  | 'shelters' 
+  | 'dispatch' 
+  | 'simulation';
