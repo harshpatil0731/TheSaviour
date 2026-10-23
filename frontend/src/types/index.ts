@@ -131,6 +131,7 @@ export interface HealthResponse {
 
 export type NavTab = 
   | 'overview' 
+  | 'map' 
   | 'donations' 
   | 'riders' 
   | 'shelters' 
@@ -224,4 +225,33 @@ export interface AutoAllocationResponse {
   total_allocations_created: number;
   unallocated_donations_remaining: number;
   message: string;
+}
+
+// --- Map & Route Tracking Types ---
+
+export interface RoutePoint {
+  latitude: number;
+  longitude: number;
+}
+
+export interface RouteCalculationResponse {
+  origin: RoutePoint;
+  destination: RoutePoint;
+  distance_km: number;
+  estimated_duration_minutes: number;
+  route_type: string;
+  polyline: RoutePoint[];
+  is_fallback: boolean;
+  note: string;
+}
+
+export interface MapConfigResponse {
+  has_server_google_maps_key: boolean;
+  default_center: {
+    name: string;
+    latitude: number;
+    longitude: number;
+  };
+  default_zoom: number;
+  region: string;
 }

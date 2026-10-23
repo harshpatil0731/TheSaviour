@@ -43,6 +43,9 @@ import {
   AllocationResultsModal 
 } from './components/AllocationResultsModal';
 import { 
+  InteractiveMap 
+} from './components/InteractiveMap';
+import { 
   api 
 } from './services/api';
 import { 
@@ -58,6 +61,7 @@ import {
   ShieldCheck, 
   Plus, 
   Play, 
+  MapPin,
   Loader2 
 } from 'lucide-react';
 
@@ -282,6 +286,14 @@ export const App: React.FC = () => {
                       </button>
 
                       <button
+                        onClick={() => setCurrentTab('map')}
+                        className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-all border border-slate-700 flex items-center gap-1.5"
+                      >
+                        <MapPin className="w-4 h-4 text-cyan-400" />
+                        <span>Live Map</span>
+                      </button>
+
+                      <button
                         onClick={() => setShowCreateDonationModal(true)}
                         className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-all border border-slate-700 flex items-center gap-1.5"
                       >
@@ -389,6 +401,18 @@ export const App: React.FC = () => {
               </div>
             )}
 
+            {/* Tab: Interactive Map & Simulated Rider Tracking */}
+            {currentTab === 'map' && (
+              <InteractiveMap
+                donations={donations}
+                shelters={shelters}
+                riders={riders}
+                allocations={allocations}
+                onTriggerAutoAllocate={handleTriggerAutoAllocate}
+                isAllocating={isAllocating}
+              />
+            )}
+
             {/* Tab 2: Donations */}
             {currentTab === 'donations' && (
               <DonationsList 
@@ -458,7 +482,7 @@ export const App: React.FC = () => {
             <span className="text-slate-400">•</span>
             <span>Civic Aid Coordination Platform</span>
             <span className="text-slate-400">•</span>
-            <span className="font-mono text-emerald-400">Phase 3 Auto-Allocation Active</span>
+            <span className="font-mono text-emerald-400">Phase 3 Allocation & Live Tracking Map Active</span>
           </div>
           <div className="flex items-center gap-4 text-slate-400 font-mono text-[11px]">
             <span>FastAPI Backend: http://localhost:8000</span>

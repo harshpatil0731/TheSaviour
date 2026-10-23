@@ -68,7 +68,27 @@ The Vite development server is pre-configured with a reverse proxy for `/api` po
 
 ---
 
-## Step 3: Running Tests
+## Step 3: Google Maps & Interactive Map (Optional)
+
+The interactive map works out-of-the-box using the built-in **Pune Relief Corridor Fallback Canvas** and geodesic route engine without any API keys.
+
+If you have a Google Maps API Key:
+1. **Frontend Map Display**:
+   Copy `frontend/.env.example` to `frontend/.env.local`:
+   ```bash
+   VITE_GOOGLE_MAPS_API_KEY="AIzaSyYourKeyHere"
+   ```
+2. **Backend Real Road Routes (Optional)**:
+   Copy `.env.example` to `.env`:
+   ```bash
+   GOOGLE_MAPS_API_KEY="AIzaSyYourServerKeyHere"
+   ```
+
+*Note: Environment files (`.env`, `.env.local`) are strictly excluded in `.gitignore`.*
+
+---
+
+## Step 4: Running Tests
 
 To run the automated backend test suite covering all endpoints, response models, and filters:
 

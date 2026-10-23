@@ -7,6 +7,7 @@ import {
   Building2, 
   Radio, 
   Cpu, 
+  Navigation,
   RefreshCw, 
   Menu, 
   X, 
@@ -36,6 +37,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const navItems: { id: NavTab; label: string; icon: React.ReactNode; badge?: string }[] = [
     { id: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { id: 'map', label: 'Live Map', icon: <Navigation className="w-4 h-4" />, badge: 'GPS/Sim' },
     { id: 'donations', label: 'Donations', icon: <Package className="w-4 h-4" /> },
     { id: 'riders', label: 'Riders', icon: <Bike className="w-4 h-4" /> },
     { id: 'shelters', label: 'Shelters', icon: <Building2 className="w-4 h-4" /> },

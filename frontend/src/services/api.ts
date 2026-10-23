@@ -12,6 +12,8 @@ import {
   CompatibilityResult,
   Allocation,
   AutoAllocationResponse,
+  RouteCalculationResponse,
+  MapConfigResponse,
 } from '../types';
 
 // Supports relative path (Vite proxy) or direct backend endpoint
@@ -178,5 +180,27 @@ export const api = {
   async getAllocations(): Promise<Allocation[]> {
     const res = await fetch(`${API_BASE_URL}/api/allocations`);
     return handleResponse<Allocation[]>(res);
+  },
+
+  // --- Routes & Map Configuration ---
+  async calculateRoute(payload: {
+    origin_lat: number;
+    origin_lng: number;
+    dest_lat: number;
+    dest_lng: number;
+    donor_name?: string;
+    shelter_name?: string;
+  }): Promise<RouteCalculationResponse> {
+    const res = await fetch(`${API_BASE_URL}/api/routes/calculate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<RouteCalculationResponse>(res);
+  },
+
+  async getMapConfig(): Promise<MapConfigResponse> {
+    const res = await fetch(`${API_BASE_URL}/api/routes/config`);
+    return handleResponse<MapConfigResponse>(res);
   },
 };

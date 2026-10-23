@@ -23,8 +23,17 @@ wheels/
 .venv/
 venv/
 ENV/
+# Environment & Secret files
 .env
 .env.local
+.env.*.local
+*.env.local
+frontend/.env
+frontend/.env.local
+backend/.env
+!*.env.example
+!.env.example
+!frontend/.env.example
 
 # Node.js & Vite
 node_modules/
