@@ -47,6 +47,7 @@ export interface Donation {
   item_name: string;
   category: DonationCategory;
   quantity: number;
+  remaining_quantity?: number;
   unit: string;
   ready_at: string;
   expires_at: string;
@@ -135,3 +136,51 @@ export type NavTab =
   | 'shelters' 
   | 'dispatch' 
   | 'simulation';
+
+// --- Phase 2 Types ---
+
+export interface DonationCreateInput {
+  donor_name: string;
+  donor_type?: string;
+  item_name: string;
+  category: DonationCategory;
+  quantity: number;
+  unit?: string;
+  location: Location;
+  expires_at: string;
+  notes?: string;
+  requirements?: string[];
+}
+
+export interface DonationAllocateInput {
+  quantity: number;
+  shelter_id?: string;
+  notes?: string;
+}
+
+export interface ShelterUpdateInput {
+  needed_meals?: number;
+  capacity?: number;
+  current_occupancy?: number;
+  status?: ShelterStatus;
+  capabilities?: ShelterCapabilities;
+  needed_categories?: DonationCategory[];
+}
+
+export interface RiderUpdateInput {
+  status?: RiderStatus;
+  capacity_units?: number;
+  current_load?: number;
+  is_active?: boolean;
+}
+
+export interface CompatibilityResult {
+  is_compatible: boolean;
+  shelter_id: string;
+  shelter_name: string;
+  category: DonationCategory;
+  missing_capabilities: string[];
+  reasons: string[];
+  warnings: string[];
+  max_acceptable_quantity: number;
+}

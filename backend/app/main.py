@@ -5,12 +5,12 @@ FastAPI Application Entry Point (Phase 1 Prototype).
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import health, dashboard, donations, riders, shelters
+from app.api import health, dashboard, donations, riders, shelters, compatibility
 
 app = FastAPI(
     title="TheSaviour API",
     description="Real-time civic aid coordination, dynamic parcel splitting, and zero-waste logistics redistribution.",
-    version="1.0.0-phase1",
+    version="2.0.0-phase2",
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -36,6 +36,7 @@ app.include_router(dashboard.router, prefix="/api")
 app.include_router(donations.router, prefix="/api")
 app.include_router(riders.router, prefix="/api")
 app.include_router(shelters.router, prefix="/api")
+app.include_router(compatibility.router, prefix="/api")
 
 
 @app.get("/", tags=["Root"])
@@ -43,7 +44,7 @@ def root_info():
     return {
         "project": "TheSaviour",
         "tagline": "Real-time civic aid coordination and zero-waste redistribution",
-        "phase": 1,
+        "phase": 2,
         "docs": "/docs",
         "endpoints": [
             "/api/health",
@@ -51,5 +52,6 @@ def root_info():
             "/api/donations",
             "/api/riders",
             "/api/shelters",
+            "/api/compatibility/check",
         ],
     }

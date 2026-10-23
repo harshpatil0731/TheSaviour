@@ -3,7 +3,13 @@ import {
   Donation, 
   Rider, 
   Shelter, 
-  HealthResponse 
+  HealthResponse,
+  DonationCreateInput,
+  DonationAllocateInput,
+  ShelterUpdateInput,
+  RiderUpdateInput,
+  RiderStatus,
+  CompatibilityResult,
 } from '../types';
 
 // Supports relative path (Vite proxy) or direct backend endpoint
@@ -16,7 +22,11 @@ async function handleResponse<T>(response: Response): Promise<T> {
     try {
       const parsed = JSON.parse(errorText);
       if (parsed.detail) {
-        errorMessage = parsed.detail;
+        if (Array.isArray(parsed.detail)) {
+          errorMessage = parsed.detail.map((d: any) => d.msg || JSON.stringify(d)).join('; ');
+        } else {
+          errorMessage = parsed.detail;
+        }
       }
     } catch {
       if (errorText) errorMessage = errorText;
@@ -27,6 +37,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 export const api = {
+  // --- Core Health & Dashboard ---
   async getHealth(): Promise<HealthResponse> {
     const res = await fetch(`${API_BASE_URL}/api/health`);
     return handleResponse<HealthResponse>(res);
@@ -37,6 +48,7 @@ export const api = {
     return handleResponse<DashboardResponse>(res);
   },
 
+  // --- Donations ---
   async getDonations(urgency?: string, status?: string): Promise<Donation[]> {
     const params = new URLSearchParams();
     if (urgency && urgency !== 'ALL') params.append('urgency', urgency);
@@ -46,6 +58,44 @@ export const api = {
     return handleResponse<Donation[]>(res);
   },
 
+  async getDonationById(id: string): Promise<Donation> {
+    const res = await fetch(`${API_BASE_URL}/api/donations/${id}`);
+    return handleResponse<Donation>(res);
+  },
+
+  async createDonation(payload: DonationCreateInput): Promise<Donation> {
+    const res = await fetch(`${API_BASE_URL}/api/donations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<Donation>(res);
+  },
+
+  async updateDonation(id: string, payload: Partial<Donation>): Promise<Donation> {
+    const res = await fetch(`${API_BASE_URL}/api/donations/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<Donation>(res);
+  },
+
+  async allocateDonation(id: string, payload: DonationAllocateInput): Promise<Donation> {
+    const res = await fetch(`${API_BASE_URL}/api/donations/${id}/allocate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<Donation>(res);
+  },
+
+  async getCompatibleShelters(donationId: string): Promise<CompatibilityResult[]> {
+    const res = await fetch(`${API_BASE_URL}/api/donations/${donationId}/compatible-shelters`);
+    return handleResponse<CompatibilityResult[]>(res);
+  },
+
+  // --- Riders ---
   async getRiders(status?: string): Promise<Rider[]> {
     const params = new URLSearchParams();
     if (status && status !== 'ALL') params.append('status', status);
@@ -54,11 +104,63 @@ export const api = {
     return handleResponse<Rider[]>(res);
   },
 
+  async updateRider(id: string, payload: RiderUpdateInput): Promise<Rider> {
+    const res = await fetch(`${API_BASE_URL}/api/riders/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<Rider>(res);
+  },
+
+  async updateRiderStatus(id: string, status: RiderStatus): Promise<Rider> {
+    const res = await fetch(`${API_BASE_URL}/api/riders/${id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    return handleResponse<Rider>(res);
+  },
+
+  // --- Shelters ---
   async getShelters(status?: string): Promise<Shelter[]> {
     const params = new URLSearchParams();
     if (status && status !== 'ALL') params.append('status', status);
     const query = params.toString() ? `?${params.toString()}` : '';
     const res = await fetch(`${API_BASE_URL}/api/shelters${query}`);
     return handleResponse<Shelter[]>(res);
+  },
+
+  async updateShelter(id: string, payload: ShelterUpdateInput): Promise<Shelter> {
+    const res = await fetch(`${API_BASE_URL}/api/shelters/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<Shelter>(res);
+  },
+
+  async closeShelter(id: string): Promise<Shelter> {
+    const res = await fetch(`${API_BASE_URL}/api/shelters/${id}/close`, {
+      method: 'POST',
+    });
+    return handleResponse<Shelter>(res);
+  },
+
+  async openShelter(id: string): Promise<Shelter> {
+    const res = await fetch(`${API_BASE_URL}/api/shelters/${id}/open`, {
+      method: 'POST',
+    });
+    return handleResponse<Shelter>(res);
+  },
+
+  // --- Deterministic Compatibility ---
+  async checkCompatibility(payload: { category: string; shelter_id: string; quantity?: number }): Promise<CompatibilityResult> {
+    const res = await fetch(`${API_BASE_URL}/api/compatibility/check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<CompatibilityResult>(res);
   },
 };

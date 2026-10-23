@@ -4,8 +4,8 @@ Phase 1: In-memory schema definitions matching README domain model.
 """
 
 from enum import Enum
-from typing import Dict, List, Optional
-from pydantic import BaseModel, Field
+from typing import Any, Dict, List, Optional
+from pydantic import BaseModel, Field, model_validator
 
 
 class UrgencyLevel(str, Enum):
@@ -71,6 +71,7 @@ class Donation(BaseModel):
     item_name: str
     category: DonationCategory
     quantity: int
+    remaining_quantity: Optional[int] = None
     unit: str  # "meals", "kits", "vials", "boxes"
     ready_at: str
     expires_at: str
@@ -81,6 +82,12 @@ class Donation(BaseModel):
     suggested_parcels: int = 1
     notes: Optional[str] = None
     created_at: str
+
+    @model_validator(mode="after")
+    def populate_remaining_quantity(self) -> "Donation":
+        if self.remaining_quantity is None:
+            self.remaining_quantity = self.quantity
+        return self
 
 
 class Rider(BaseModel):
@@ -152,3 +159,78 @@ class HealthResponse(BaseModel):
     version: str
     timestamp: str
     counts: Dict[str, int]
+
+
+# --- Phase 2: Operations and Management Models ---
+
+class DonationCreate(BaseModel):
+    donor_name: str = Field(..., min_length=2, max_length=120)
+    donor_type: str = Field(default="Community Partner", min_length=2, max_length=60)
+    donor_id: Optional[str] = None
+    item_name: str = Field(..., min_length=2, max_length=120)
+    category: DonationCategory
+    quantity: int = Field(..., gt=0, description="Donation quantity must be greater than zero.")
+    unit: str = Field(default="meals", min_length=1, max_length=30)
+    location: Location
+    ready_at: Optional[str] = None
+    expires_at: str = Field(..., description="ISO 8601 expiry timestamp.")
+    requirements: List[str] = Field(default_factory=list)
+    notes: Optional[str] = None
+
+
+class DonationUpdate(BaseModel):
+    status: Optional[DonationStatus] = None
+    remaining_quantity: Optional[int] = Field(None, ge=0)
+    notes: Optional[str] = None
+
+
+class DonationAllocateRequest(BaseModel):
+    quantity: int = Field(..., gt=0, description="Quantity to allocate must be greater than zero.")
+    shelter_id: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class ShelterUpdate(BaseModel):
+    needed_meals: Optional[int] = Field(None, ge=0, description="Needed meals cannot be negative.")
+    capacity: Optional[int] = Field(None, gt=0, description="Capacity must be positive.")
+    current_occupancy: Optional[int] = Field(None, ge=0, description="Occupancy cannot be negative.")
+    status: Optional[ShelterStatus] = None
+    capabilities: Optional[ShelterCapabilities] = None
+    needed_categories: Optional[List[DonationCategory]] = None
+
+
+class ShelterNeedsUpdate(BaseModel):
+    needed_meals: int = Field(..., ge=0, description="Needed meals cannot be negative.")
+    capabilities: Optional[ShelterCapabilities] = None
+    needed_categories: Optional[List[DonationCategory]] = None
+
+
+class RiderUpdate(BaseModel):
+    status: Optional[RiderStatus] = None
+    capacity_units: Optional[int] = Field(None, gt=0, description="Capacity must be greater than zero.")
+    current_load: Optional[int] = Field(None, ge=0, description="Current load cannot be negative.")
+    is_active: Optional[bool] = None
+    reliability_score: Optional[float] = Field(None, ge=0.0, le=1.0)
+    location: Optional[Location] = None
+
+
+class RiderStatusUpdate(BaseModel):
+    status: RiderStatus
+
+
+class CompatibilityCheckRequest(BaseModel):
+    category: DonationCategory
+    shelter_id: str
+    quantity: Optional[int] = Field(None, gt=0)
+    donation_id: Optional[str] = None
+
+
+class CompatibilityCheckResult(BaseModel):
+    is_compatible: bool
+    shelter_id: str
+    shelter_name: str
+    category: DonationCategory
+    missing_capabilities: List[str] = Field(default_factory=list)
+    reasons: List[str] = Field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)
+    max_acceptable_quantity: int

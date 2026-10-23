@@ -6,32 +6,67 @@ import {
   Droplets, 
   Flame, 
   Snowflake, 
-  Users 
+  Users, 
+  Settings, 
+  PowerOff, 
+  Power 
 } from 'lucide-react';
 import { Shelter } from '../types';
 import { EmptyState } from './EmptyState';
+import { ShelterEditModal } from './ShelterEditModal';
+import { api } from '../services/api';
 
 interface SheltersListProps {
   shelters: Shelter[];
+  onShelterUpdated?: (updated: Shelter) => void;
 }
 
-export const SheltersList: React.FC<SheltersListProps> = ({ shelters }) => {
+export const SheltersList: React.FC<SheltersListProps> = ({ 
+  shelters,
+  onShelterUpdated,
+}) => {
   const [filter, setFilter] = useState<string>('ALL');
+  const [editingShelter, setEditingShelter] = useState<Shelter | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const filtered = shelters.filter((s) => {
     if (filter === 'ALL') return true;
     return s.status === filter;
   });
 
+  const handleToggleStatus = async (shelter: Shelter) => {
+    setTogglingId(shelter.id);
+    try {
+      let updated: Shelter;
+      if (shelter.status === 'CLOSED') {
+        updated = await api.openShelter(shelter.id);
+      } else {
+        updated = await api.closeShelter(shelter.id);
+      }
+      if (onShelterUpdated) {
+        onShelterUpdated(updated);
+      }
+    } catch (err) {
+      console.error('Failed to toggle shelter status:', err);
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header and Filter */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-900/60 p-5 rounded-2xl border border-slate-800">
         <div>
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-emerald-400" />
-            Shelters & Emergency Relief Camps
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-emerald-400" />
+              Shelters & Emergency Relief Camps
+            </h2>
+            <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              {shelters.length} Facilities
+            </span>
+          </div>
           <p className="text-xs text-slate-400 mt-1">
             Registered night shelters, flood relief centers, and care homes declaring verified capabilities and unmet need.
           </p>
@@ -84,6 +119,8 @@ export const SheltersList: React.FC<SheltersListProps> = ({ shelters }) => {
                     <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
                       shelter.status === 'OPEN'
                         ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                        : shelter.status === 'AT_CAPACITY'
+                        ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
                         : 'bg-rose-500/15 border-rose-500/30 text-rose-400'
                     }`}>
                       {shelter.status}
@@ -184,20 +221,65 @@ export const SheltersList: React.FC<SheltersListProps> = ({ shelters }) => {
                   </div>
                 </div>
 
-                {/* Footer Hold Status */}
-                <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-                  <span className="text-[11px] font-mono">
-                    Soft Holds: <strong className="text-white">{shelter.active_holds} units reserved</strong>
-                  </span>
-                  <span className="text-[10px] text-emerald-400 font-medium">
-                    Protection: Anti-Overfill
-                  </span>
+                {/* Footer & Actions */}
+                <div className="mt-4 pt-3 border-t border-slate-800 space-y-2.5">
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span className="text-[11px] font-mono">
+                      Soft Holds: <strong className="text-white">{shelter.active_holds} units reserved</strong>
+                    </span>
+                    <span className="text-[10px] text-emerald-400 font-medium">
+                      Protection: Anti-Overfill
+                    </span>
+                  </div>
+
+                  {/* Phase 2 Action Buttons */}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      onClick={() => setEditingShelter(shelter)}
+                      className="py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <Settings className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Edit Demand & Caps</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleToggleStatus(shelter)}
+                      disabled={togglingId === shelter.id}
+                      className={`py-1.5 px-3 text-xs font-semibold rounded-xl border flex items-center justify-center gap-1.5 transition-colors ${
+                        shelter.status === 'CLOSED'
+                          ? 'bg-emerald-950/60 border-emerald-800 text-emerald-300 hover:bg-emerald-900/60'
+                          : 'bg-rose-950/60 border-rose-800 text-rose-300 hover:bg-rose-900/60'
+                      }`}
+                    >
+                      {shelter.status === 'CLOSED' ? (
+                        <>
+                          <Power className="w-3.5 h-3.5" />
+                          <span>Reopen Shelter</span>
+                        </>
+                      ) : (
+                        <>
+                          <PowerOff className="w-3.5 h-3.5" />
+                          <span>Close Shelter</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             );
           })}
         </div>
       )}
+
+      {/* Shelter Edit Modal */}
+      <ShelterEditModal
+        shelter={editingShelter}
+        isOpen={!!editingShelter}
+        onClose={() => setEditingShelter(null)}
+        onSuccess={(updated) => {
+          if (onShelterUpdated) onShelterUpdated(updated);
+        }}
+      />
     </div>
   );
 };

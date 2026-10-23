@@ -33,6 +33,13 @@ import {
   ErrorMessage 
 } from './components/ErrorMessage';
 import { 
+  Toast, 
+  ToastMessage 
+} from './components/Toast';
+import { 
+  DonationCreateModal 
+} from './components/DonationCreateModal';
+import { 
   api 
 } from './services/api';
 import { 
@@ -43,7 +50,8 @@ import {
   Shelter 
 } from './types';
 import { 
-  ShieldCheck 
+  ShieldCheck, 
+  Plus 
 } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -58,6 +66,10 @@ export const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [backendHealthy, setBackendHealthy] = useState<boolean | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+
+  // Phase 2 Interactive States
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+  const [showCreateDonationModal, setShowCreateDonationModal] = useState<boolean>(false);
 
   const loadData = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
@@ -93,6 +105,52 @@ export const App: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Phase 2 Mutation Handlers
+  const handleDonationCreated = (newDonation: Donation) => {
+    setDonations((prev) => [newDonation, ...prev]);
+    setToast({
+      id: Date.now().toString(),
+      type: 'success',
+      title: 'Donation Batch Registered',
+      message: `${newDonation.quantity} ${newDonation.unit} of "${newDonation.item_name}" registered with safe arrival window of ${newDonation.safe_window_minutes} mins.`,
+    });
+    // Silent refresh to update dashboard counters & recent activity
+    loadData(true);
+  };
+
+  const handleDonationUpdated = (updated: Donation) => {
+    setDonations((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
+    setToast({
+      id: Date.now().toString(),
+      type: 'info',
+      title: 'Donation Batch Updated',
+      message: `Batch "${updated.item_name}": ${updated.remaining_quantity ?? updated.quantity} unallocated ${updated.unit} remaining (${updated.status}).`,
+    });
+    loadData(true);
+  };
+
+  const handleShelterUpdated = (updated: Shelter) => {
+    setShelters((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+    setToast({
+      id: Date.now().toString(),
+      type: 'success',
+      title: 'Shelter Updated',
+      message: `${updated.name}: Demand updated to ${updated.needed_meals} meals, occupancy ${updated.current_occupancy}/${updated.capacity} (${updated.status}).`,
+    });
+    loadData(true);
+  };
+
+  const handleRiderUpdated = (updated: Rider) => {
+    setRiders((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+    setToast({
+      id: Date.now().toString(),
+      type: 'info',
+      title: 'Volunteer Rider Updated',
+      message: `${updated.name}: Status set to ${updated.status}, carrying capacity ${updated.capacity_units} units.`,
+    });
+    loadData(true);
+  };
 
   return (
     <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
@@ -152,7 +210,15 @@ export const App: React.FC = () => {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        onClick={() => setShowCreateDonationModal(true)}
+                        className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-emerald-950 flex items-center gap-1.5"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Register Donation Batch</span>
+                      </button>
+
                       <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-right">
                         <div className="text-[10px] text-slate-400 uppercase font-mono">System Invariant</div>
                         <div className="text-xs font-bold text-emerald-400 flex items-center justify-end gap-1 mt-0.5">
@@ -255,17 +321,28 @@ export const App: React.FC = () => {
 
             {/* Tab 2: Donations */}
             {currentTab === 'donations' && (
-              <DonationsList donations={donations} />
+              <DonationsList 
+                donations={donations}
+                shelters={shelters}
+                onOpenCreateModal={() => setShowCreateDonationModal(true)}
+                onDonationUpdated={handleDonationUpdated}
+              />
             )}
 
             {/* Tab 3: Riders */}
             {currentTab === 'riders' && (
-              <RidersList riders={riders} />
+              <RidersList 
+                riders={riders}
+                onRiderUpdated={handleRiderUpdated}
+              />
             )}
 
             {/* Tab 4: Shelters */}
             {currentTab === 'shelters' && (
-              <SheltersList shelters={shelters} />
+              <SheltersList 
+                shelters={shelters}
+                onShelterUpdated={handleShelterUpdated}
+              />
             )}
 
             {/* Tab 5: Dispatch */}
@@ -281,6 +358,16 @@ export const App: React.FC = () => {
         )}
       </main>
 
+      {/* Floating Notification Toast */}
+      <Toast toast={toast} onClose={() => setToast(null)} />
+
+      {/* Register Donation Batch Modal */}
+      <DonationCreateModal
+        isOpen={showCreateDonationModal}
+        onClose={() => setShowCreateDonationModal(false)}
+        onSuccess={handleDonationCreated}
+      />
+
       {/* Footer */}
       <footer className="mt-auto border-t border-slate-800/80 bg-slate-950 py-6 text-xs text-slate-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -289,7 +376,7 @@ export const App: React.FC = () => {
             <span className="text-slate-400">•</span>
             <span>Civic Aid Coordination Platform</span>
             <span className="text-slate-400">•</span>
-            <span className="font-mono text-emerald-400">Phase 1 Prototype</span>
+            <span className="font-mono text-emerald-400">Phase 2 Operational</span>
           </div>
           <div className="flex items-center gap-4 text-slate-400 font-mono text-[11px]">
             <span>FastAPI Backend: http://localhost:8000</span>
@@ -300,4 +387,5 @@ export const App: React.FC = () => {
     </div>
   );
 };
+
 export default App;
