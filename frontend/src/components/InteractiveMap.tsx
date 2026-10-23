@@ -778,7 +778,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                 ) : (
                   allocations.map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.donation_item_name} ({a.quantity} {a.unit}) → {a.shelter_name}
+                      {a.donation_item_name} ({a.quantity} {a.unit}) → {a.shelter_name} {a.status === 'REROUTED' ? '⚠️ [REROUTED]' : ''}
                     </option>
                   ))
                 )}
@@ -803,7 +803,14 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-slate-400">Destination:</span>
-                    <span className="text-slate-300 truncate max-w-[140px]">{selectedAlloc.shelter_name}</span>
+                    <div className="text-right">
+                      <span className="text-slate-300 truncate max-w-[140px] block font-semibold">{selectedAlloc.shelter_name}</span>
+                      {selectedAlloc.original_shelter_name && (
+                        <span className="text-[10px] font-mono text-amber-400 block">
+                          (Rerouted from {selectedAlloc.original_shelter_name})
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 

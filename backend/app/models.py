@@ -238,6 +238,16 @@ class CompatibilityCheckResult(BaseModel):
 
 # --- Phase 3: Automatic Allocation and Batch Splitting Models ---
 
+class AllocationStatus(str, Enum):
+    ALLOCATED = "ALLOCATED"
+    CLAIMED = "CLAIMED"
+    PICKED_UP = "PICKED_UP"
+    IN_TRANSIT = "IN_TRANSIT"
+    REROUTED = "REROUTED"
+    DELIVERED = "DELIVERED"
+    UNSALVAGEABLE = "UNSALVAGEABLE"
+
+
 class Allocation(BaseModel):
     id: str
     donation_id: str
@@ -253,9 +263,15 @@ class Allocation(BaseModel):
     rider_vehicle: str
     quantity: int
     unit: str
-    status: str = "ALLOCATED"
+    status: AllocationStatus = AllocationStatus.ALLOCATED
     reason: str
     created_at: str
+    original_shelter_id: Optional[str] = None
+    original_shelter_name: Optional[str] = None
+    original_rider_id: Optional[str] = None
+    original_rider_name: Optional[str] = None
+    recovery_reason: Optional[str] = None
+    updated_at: Optional[str] = None
 
 
 class SkippedDonation(BaseModel):
@@ -275,4 +291,53 @@ class AutoAllocationResponse(BaseModel):
     total_allocations_created: int
     unallocated_donations_remaining: int
     message: str
+
+
+# --- Phase 5: Recovery and Simulation Models ---
+
+class AllocationStatusUpdate(BaseModel):
+    status: AllocationStatus
+    notes: Optional[str] = None
+
+
+class AllocationRecoveryResult(BaseModel):
+    allocation_id: str
+    action: str  # "RETARGETED_SHELTER", "REASSIGNED_RIDER", "RELEASED_FOR_REALLOCATION", "MARKED_UNSALVAGEABLE", "NO_ACTION_NEEDED"
+    previous_shelter: Optional[str] = None
+    new_shelter: Optional[str] = None
+    previous_rider: Optional[str] = None
+    new_rider: Optional[str] = None
+    status: AllocationStatus
+    explanation: str
+
+
+class RiderFailureResponse(BaseModel):
+    rider_id: str
+    rider_name: str
+    rider_status: RiderStatus
+    affected_allocations: List[AllocationRecoveryResult]
+    message: str
+
+
+class ShelterDisruptionResponse(BaseModel):
+    shelter_id: str
+    shelter_name: str
+    shelter_status: ShelterStatus
+    affected_allocations: List[AllocationRecoveryResult]
+    message: str
+
+
+class ScenarioExecutionResponse(BaseModel):
+    scenario_name: str
+    description: str
+    recovery_results: List[AllocationRecoveryResult]
+    allocations_count: int
+    message: str
+
+
+class SimulationResetResponse(BaseModel):
+    status: str
+    message: str
+    counts: Dict[str, int]
+
 

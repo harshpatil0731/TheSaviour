@@ -11,9 +11,14 @@ import {
   RiderStatus,
   CompatibilityResult,
   Allocation,
+  AllocationStatus,
   AutoAllocationResponse,
   RouteCalculationResponse,
   MapConfigResponse,
+  RiderFailureResponse,
+  ShelterDisruptionResponse,
+  ScenarioExecutionResponse,
+  SimulationResetResponse,
 } from '../types';
 
 // Supports relative path (Vite proxy) or direct backend endpoint
@@ -180,6 +185,80 @@ export const api = {
   async getAllocations(): Promise<Allocation[]> {
     const res = await fetch(`${API_BASE_URL}/api/allocations`);
     return handleResponse<Allocation[]>(res);
+  },
+
+  // --- Phase 5: Dispatch Lifecycle Transitions ---
+  async pickupParcel(id: string): Promise<Allocation> {
+    const res = await fetch(`${API_BASE_URL}/api/allocations/${id}/pickup`, {
+      method: 'POST',
+    });
+    return handleResponse<Allocation>(res);
+  },
+
+  async inTransitParcel(id: string): Promise<Allocation> {
+    const res = await fetch(`${API_BASE_URL}/api/allocations/${id}/in-transit`, {
+      method: 'POST',
+    });
+    return handleResponse<Allocation>(res);
+  },
+
+  async deliverParcel(id: string): Promise<Allocation> {
+    const res = await fetch(`${API_BASE_URL}/api/allocations/${id}/deliver`, {
+      method: 'POST',
+    });
+    return handleResponse<Allocation>(res);
+  },
+
+  async releaseParcel(id: string): Promise<Allocation> {
+    const res = await fetch(`${API_BASE_URL}/api/allocations/${id}/release`, {
+      method: 'POST',
+    });
+    return handleResponse<Allocation>(res);
+  },
+
+  async updateParcelStatus(id: string, status: AllocationStatus, notes?: string): Promise<Allocation> {
+    const res = await fetch(`${API_BASE_URL}/api/allocations/${id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, notes }),
+    });
+    return handleResponse<Allocation>(res);
+  },
+
+  // --- Phase 5: Chaos Simulation & Recovery Endpoints ---
+  async simulateRiderGoSilent(riderId: string): Promise<RiderFailureResponse> {
+    const res = await fetch(`${API_BASE_URL}/api/sim/rider/${riderId}/go-silent`, {
+      method: 'POST',
+    });
+    return handleResponse<RiderFailureResponse>(res);
+  },
+
+  async simulateShelterFill(shelterId: string): Promise<ShelterDisruptionResponse> {
+    const res = await fetch(`${API_BASE_URL}/api/sim/shelter/${shelterId}/fill`, {
+      method: 'POST',
+    });
+    return handleResponse<ShelterDisruptionResponse>(res);
+  },
+
+  async simulateShelterClose(shelterId: string): Promise<ShelterDisruptionResponse> {
+    const res = await fetch(`${API_BASE_URL}/api/sim/shelter/${shelterId}/close`, {
+      method: 'POST',
+    });
+    return handleResponse<ShelterDisruptionResponse>(res);
+  },
+
+  async runSimulationScenario(scenarioName: string): Promise<ScenarioExecutionResponse> {
+    const res = await fetch(`${API_BASE_URL}/api/sim/scenario/${scenarioName}`, {
+      method: 'POST',
+    });
+    return handleResponse<ScenarioExecutionResponse>(res);
+  },
+
+  async resetSimulation(): Promise<SimulationResetResponse> {
+    const res = await fetch(`${API_BASE_URL}/api/sim/reset`, {
+      method: 'POST',
+    });
+    return handleResponse<SimulationResetResponse>(res);
   },
 
   // --- Routes & Map Configuration ---

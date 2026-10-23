@@ -188,6 +188,15 @@ export interface CompatibilityResult {
 
 // --- Phase 3: Automatic Allocation Types ---
 
+export type AllocationStatus = 
+  | 'ALLOCATED' 
+  | 'CLAIMED' 
+  | 'PICKED_UP' 
+  | 'IN_TRANSIT' 
+  | 'REROUTED' 
+  | 'DELIVERED' 
+  | 'UNSALVAGEABLE';
+
 export interface Allocation {
   id: string;
   donation_id: string;
@@ -203,9 +212,15 @@ export interface Allocation {
   rider_vehicle: string;
   quantity: number;
   unit: string;
-  status: string;
+  status: AllocationStatus | string;
   reason: string;
   created_at: string;
+  original_shelter_id?: string;
+  original_shelter_name?: string;
+  original_rider_id?: string;
+  original_rider_name?: string;
+  recovery_reason?: string;
+  updated_at?: string;
 }
 
 export interface SkippedDonation {
@@ -225,6 +240,49 @@ export interface AutoAllocationResponse {
   total_allocations_created: number;
   unallocated_donations_remaining: number;
   message: string;
+}
+
+// --- Phase 5: Recovery and Simulation Types ---
+
+export interface AllocationRecoveryResult {
+  allocation_id: string;
+  action: string;
+  previous_shelter?: string;
+  new_shelter?: string;
+  previous_rider?: string;
+  new_rider?: string;
+  status: AllocationStatus;
+  explanation: string;
+}
+
+export interface RiderFailureResponse {
+  rider_id: string;
+  rider_name: string;
+  rider_status: RiderStatus;
+  affected_allocations: AllocationRecoveryResult[];
+  message: string;
+}
+
+export interface ShelterDisruptionResponse {
+  shelter_id: string;
+  shelter_name: string;
+  shelter_status: ShelterStatus;
+  affected_allocations: AllocationRecoveryResult[];
+  message: string;
+}
+
+export interface ScenarioExecutionResponse {
+  scenario_name: string;
+  description: string;
+  recovery_results: AllocationRecoveryResult[];
+  allocations_count: number;
+  message: string;
+}
+
+export interface SimulationResetResponse {
+  status: string;
+  message: string;
+  counts: Record<string, number>;
 }
 
 // --- Map & Route Tracking Types ---

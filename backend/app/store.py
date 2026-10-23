@@ -15,6 +15,7 @@ from app.models import (
     ShelterCapabilities,
     ActivityEvent,
     Allocation,
+    AllocationStatus,
     DashboardSummary,
     DashboardResponse,
     HealthResponse,
@@ -168,6 +169,7 @@ class InMemoryStore:
         is_active: Optional[bool] = None,
         reliability_score: Optional[float] = None,
         location: Optional[Location] = None,
+        completed_deliveries: Optional[int] = None,
     ) -> Optional[Rider]:
         rider = self._riders.get(rider_id)
         if not rider:
@@ -196,6 +198,8 @@ class InMemoryStore:
             updates["reliability_score"] = reliability_score
         if location is not None:
             updates["location"] = location
+        if completed_deliveries is not None:
+            updates["completed_deliveries"] = completed_deliveries
 
         updated_rider = rider.model_copy(update=updates)
         self._riders[rider_id] = updated_rider
@@ -232,6 +236,7 @@ class InMemoryStore:
         status: Optional[ShelterStatus] = None,
         capabilities: Optional[ShelterCapabilities] = None,
         needed_categories: Optional[List[DonationCategory]] = None,
+        active_holds: Optional[int] = None,
     ) -> Optional[Shelter]:
         shelter = self._shelters.get(shelter_id)
         if not shelter:
@@ -265,6 +270,8 @@ class InMemoryStore:
             updates["capabilities"] = capabilities
         if needed_categories is not None:
             updates["needed_categories"] = needed_categories
+        if active_holds is not None:
+            updates["active_holds"] = max(0, active_holds)
 
         updated_shelter = shelter.model_copy(update=updates)
         self._shelters[shelter_id] = updated_shelter
@@ -288,6 +295,36 @@ class InMemoryStore:
 
     def list_allocations(self) -> List[Allocation]:
         return list(self._allocations)
+
+    def get_allocation(self, allocation_id: str) -> Optional[Allocation]:
+        for a in self._allocations:
+            if a.id == allocation_id:
+                return a
+        return None
+
+    def update_allocation(self, allocation_id: str, updates: dict) -> Optional[Allocation]:
+        for idx, a in enumerate(self._allocations):
+            if a.id == allocation_id:
+                now_iso = datetime.now(timezone.utc).isoformat()
+                updates["updated_at"] = now_iso
+                updated = a.model_copy(update=updates)
+                self._allocations[idx] = updated
+                return updated
+        return None
+
+    def list_allocations_for_rider(self, rider_id: str, active_only: bool = True) -> List[Allocation]:
+        terminal_statuses = {AllocationStatus.DELIVERED, AllocationStatus.UNSALVAGEABLE}
+        results = [a for a in self._allocations if a.rider_id == rider_id]
+        if active_only:
+            results = [a for a in results if a.status not in terminal_statuses]
+        return results
+
+    def list_allocations_for_shelter(self, shelter_id: str, active_only: bool = True) -> List[Allocation]:
+        terminal_statuses = {AllocationStatus.DELIVERED, AllocationStatus.UNSALVAGEABLE}
+        results = [a for a in self._allocations if a.shelter_id == shelter_id]
+        if active_only:
+            results = [a for a in results if a.status not in terminal_statuses]
+        return results
 
     # --- Activities ---
     def list_activities(self, limit: int = 10) -> List[ActivityEvent]:

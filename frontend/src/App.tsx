@@ -439,18 +439,23 @@ export const App: React.FC = () => {
               />
             )}
 
-            {/* Tab 5: Dispatch Console (Phase 3 active console) */}
+            {/* Tab 5: Dispatch Console (Phase 5 recovery & parcel lifecycle active) */}
             {currentTab === 'dispatch' && (
               <DispatchPreview 
                 allocations={allocations}
                 onTriggerAutoAllocate={handleTriggerAutoAllocate}
+                onAllocationUpdated={() => loadData(true)}
                 isAllocating={isAllocating}
               />
             )}
 
-            {/* Tab 6: Simulation */}
+            {/* Tab 6: Simulation (Phase 5 Chaos Lab) */}
             {currentTab === 'simulation' && (
-              <SimulationPreview />
+              <SimulationPreview 
+                riders={riders}
+                shelters={shelters}
+                onStateMutated={() => loadData(true)}
+              />
             )}
           </div>
         )}
@@ -482,7 +487,7 @@ export const App: React.FC = () => {
             <span className="text-slate-400">•</span>
             <span>Civic Aid Coordination Platform</span>
             <span className="text-slate-400">•</span>
-            <span className="font-mono text-emerald-400">Phase 3 Allocation & Live Tracking Map Active</span>
+            <span className="font-mono text-emerald-400">Phase 5 Recovery & Chaos Simulation Active</span>
           </div>
           <div className="flex items-center gap-4 text-slate-400 font-mono text-[11px]">
             <span>FastAPI Backend: http://localhost:8000</span>

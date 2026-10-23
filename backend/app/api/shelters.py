@@ -80,11 +80,14 @@ def update_shelter_needs(shelter_id: str, payload: ShelterNeedsUpdate) -> Shelte
 
 @router.post("/shelters/{shelter_id}/close", response_model=Shelter, tags=["Shelters"])
 def close_shelter(shelter_id: str) -> Shelter:
-    """Mark a shelter as CLOSED (e.g. evacuated, power loss, or flooded corridor)."""
-    updated = store.update_shelter(shelter_id=shelter_id, status=ShelterStatus.CLOSED)
-    if not updated:
+    """Mark a shelter as CLOSED and automatically recover/reroute active parcels via Salvage Ladder."""
+    shelter = store.get_shelter(shelter_id)
+    if not shelter:
         raise HTTPException(status_code=404, detail=f"Shelter '{shelter_id}' not found.")
-    return updated
+    
+    from app.recovery import recover_shelter_disruption
+    recover_shelter_disruption(shelter_id, is_closed=True)
+    return store.get_shelter(shelter_id)
 
 
 @router.post("/shelters/{shelter_id}/open", response_model=Shelter, tags=["Shelters"])

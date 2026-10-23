@@ -5,12 +5,12 @@ FastAPI Application Entry Point (Phase 1 Prototype).
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import health, dashboard, donations, riders, shelters, compatibility, allocations, routes
+from app.api import health, dashboard, donations, riders, shelters, compatibility, allocations, routes, simulation
 
 app = FastAPI(
     title="TheSaviour API",
     description="Real-time civic aid coordination, dynamic parcel splitting, and zero-waste logistics redistribution.",
-    version="3.1.0-phase3-map",
+    version="5.0.0-phase5-recovery",
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -39,6 +39,7 @@ app.include_router(shelters.router, prefix="/api")
 app.include_router(compatibility.router, prefix="/api")
 app.include_router(allocations.router, prefix="/api")
 app.include_router(routes.router, prefix="/api")
+app.include_router(simulation.router, prefix="/api")
 
 
 @app.get("/", tags=["Root"])
@@ -46,7 +47,7 @@ def root_info():
     return {
         "project": "TheSaviour",
         "tagline": "Real-time civic aid coordination and zero-waste redistribution",
-        "phase": 3,
+        "phase": 5,
         "docs": "/docs",
         "endpoints": [
             "/api/health",
@@ -59,5 +60,10 @@ def root_info():
             "/api/allocations",
             "/api/routes/calculate",
             "/api/routes/config",
+            "/api/sim/rider/{id}/go-silent",
+            "/api/sim/shelter/{id}/fill",
+            "/api/sim/shelter/{id}/close",
+            "/api/sim/scenario/{name}",
+            "/api/sim/reset",
         ],
     }
