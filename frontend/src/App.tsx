@@ -445,6 +445,7 @@ export const App: React.FC = () => {
                 allocations={allocations}
                 onTriggerAutoAllocate={handleTriggerAutoAllocate}
                 onAllocationUpdated={() => loadData(true)}
+                onToast={setToast}
                 isAllocating={isAllocating}
               />
             )}
@@ -455,6 +456,7 @@ export const App: React.FC = () => {
                 riders={riders}
                 shelters={shelters}
                 onStateMutated={() => loadData(true)}
+                onToast={setToast}
               />
             )}
           </div>

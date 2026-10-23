@@ -19,12 +19,14 @@ interface SimulationPreviewProps {
   riders?: Rider[];
   shelters?: Shelter[];
   onStateMutated?: () => void;
+  onToast?: (toast: any) => void;
 }
 
 export const SimulationPreview: React.FC<SimulationPreviewProps> = ({
   riders = [],
   shelters = [],
   onStateMutated,
+  onToast,
 }) => {
   const [selectedRiderId, setSelectedRiderId] = useState<string>(riders[0]?.id || '');
   const [selectedShelterId, setSelectedShelterId] = useState<string>(shelters[0]?.id || '');
@@ -34,6 +36,19 @@ export const SimulationPreview: React.FC<SimulationPreviewProps> = ({
   const [chaosMessage, setChaosMessage] = useState<string | null>(null);
   const [chaosRecoveryList, setChaosRecoveryList] = useState<AllocationRecoveryResult[]>([]);
   const [clockSpeed, setClockSpeed] = useState<number>(1);
+
+  // Synchronize dropdown selections when fleet or shelters update
+  React.useEffect(() => {
+    if ((!selectedRiderId || !riders.some((r) => r.id === selectedRiderId)) && riders.length > 0) {
+      setSelectedRiderId(riders[0].id);
+    }
+  }, [riders, selectedRiderId]);
+
+  React.useEffect(() => {
+    if ((!selectedShelterId || !shelters.some((s) => s.id === selectedShelterId)) && shelters.length > 0) {
+      setSelectedShelterId(shelters[0].id);
+    }
+  }, [shelters, selectedShelterId]);
 
   const scenarios = [
     {
@@ -85,9 +100,25 @@ export const SimulationPreview: React.FC<SimulationPreviewProps> = ({
     try {
       const res = await api.runSimulationScenario(scenarioId);
       setLastScenarioResult(res);
+      if (onToast) {
+        onToast({
+          id: Date.now().toString(),
+          type: 'success',
+          title: `Executed ${res.scenario_name}`,
+          message: res.message,
+        });
+      }
       if (onStateMutated) onStateMutated();
     } catch (err: any) {
       setChaosMessage(`Error executing scenario: ${err.message}`);
+      if (onToast) {
+        onToast({
+          id: Date.now().toString(),
+          type: 'error',
+          title: 'Scenario Failed',
+          message: err.message,
+        });
+      }
     } finally {
       setExecutingScenario(null);
     }
@@ -101,9 +132,25 @@ export const SimulationPreview: React.FC<SimulationPreviewProps> = ({
       const res = await api.simulateRiderGoSilent(selectedRiderId);
       setChaosMessage(res.message);
       setChaosRecoveryList(res.affected_allocations);
+      if (onToast) {
+        onToast({
+          id: Date.now().toString(),
+          type: 'warning',
+          title: `Courier ${res.rider_name} Silent`,
+          message: res.message,
+        });
+      }
       if (onStateMutated) onStateMutated();
     } catch (err: any) {
       setChaosMessage(`Rider failure injection failed: ${err.message}`);
+      if (onToast) {
+        onToast({
+          id: Date.now().toString(),
+          type: 'error',
+          title: 'Injection Failed',
+          message: err.message,
+        });
+      }
     } finally {
       setExecutingChaos(null);
     }
@@ -117,9 +164,25 @@ export const SimulationPreview: React.FC<SimulationPreviewProps> = ({
       const res = await api.simulateShelterFill(selectedShelterId);
       setChaosMessage(res.message);
       setChaosRecoveryList(res.affected_allocations);
+      if (onToast) {
+        onToast({
+          id: Date.now().toString(),
+          type: 'info',
+          title: `Shelter ${res.shelter_name} Filled`,
+          message: res.message,
+        });
+      }
       if (onStateMutated) onStateMutated();
     } catch (err: any) {
       setChaosMessage(`Shelter demand fill failed: ${err.message}`);
+      if (onToast) {
+        onToast({
+          id: Date.now().toString(),
+          type: 'error',
+          title: 'Fill Simulation Failed',
+          message: err.message,
+        });
+      }
     } finally {
       setExecutingChaos(null);
     }
@@ -133,9 +196,25 @@ export const SimulationPreview: React.FC<SimulationPreviewProps> = ({
       const res = await api.simulateShelterClose(selectedShelterId);
       setChaosMessage(res.message);
       setChaosRecoveryList(res.affected_allocations);
+      if (onToast) {
+        onToast({
+          id: Date.now().toString(),
+          type: 'warning',
+          title: `Shelter ${res.shelter_name} Closed`,
+          message: res.message,
+        });
+      }
       if (onStateMutated) onStateMutated();
     } catch (err: any) {
       setChaosMessage(`Shelter closure failed: ${err.message}`);
+      if (onToast) {
+        onToast({
+          id: Date.now().toString(),
+          type: 'error',
+          title: 'Close Simulation Failed',
+          message: err.message,
+        });
+      }
     } finally {
       setExecutingChaos(null);
     }
@@ -148,9 +227,25 @@ export const SimulationPreview: React.FC<SimulationPreviewProps> = ({
     try {
       const res = await api.resetSimulation();
       setChaosMessage(res.message);
+      if (onToast) {
+        onToast({
+          id: Date.now().toString(),
+          type: 'success',
+          title: 'System State Reset',
+          message: 'All demo entities, active allocations, and courier holds restored to initial state.',
+        });
+      }
       if (onStateMutated) onStateMutated();
     } catch (err: any) {
       setChaosMessage(`Simulation reset failed: ${err.message}`);
+      if (onToast) {
+        onToast({
+          id: Date.now().toString(),
+          type: 'error',
+          title: 'Reset Failed',
+          message: err.message,
+        });
+      }
     } finally {
       setExecutingChaos(null);
     }

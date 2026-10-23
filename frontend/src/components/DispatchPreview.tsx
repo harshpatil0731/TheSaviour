@@ -21,6 +21,7 @@ interface DispatchPreviewProps {
   allocations?: Allocation[];
   onTriggerAutoAllocate?: () => void;
   onAllocationUpdated?: () => void;
+  onToast?: (toast: any) => void;
   isAllocating?: boolean;
 }
 
@@ -28,6 +29,7 @@ export const DispatchPreview: React.FC<DispatchPreviewProps> = ({
   allocations = [],
   onTriggerAutoAllocate,
   onAllocationUpdated,
+  onToast,
   isAllocating = false,
 }) => {
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -37,13 +39,23 @@ export const DispatchPreview: React.FC<DispatchPreviewProps> = ({
     setProcessingId(id);
     setActionError(null);
     try {
-      if (action === 'pickup') await api.pickupParcel(id);
-      else if (action === 'in-transit') await api.inTransitParcel(id);
-      else if (action === 'deliver') await api.deliverParcel(id);
-      else if (action === 'release') await api.releaseParcel(id);
+      if (action === 'pickup') {
+        await api.pickupParcel(id);
+        if (onToast) onToast({ id: Date.now().toString(), type: 'success', title: 'Parcel Picked Up', message: 'Courier confirmed physical pickup from donor.' });
+      } else if (action === 'in-transit') {
+        await api.inTransitParcel(id);
+        if (onToast) onToast({ id: Date.now().toString(), type: 'info', title: 'Courier In-Transit', message: 'Courier departed towards destination shelter.' });
+      } else if (action === 'deliver') {
+        await api.deliverParcel(id);
+        if (onToast) onToast({ id: Date.now().toString(), type: 'success', title: 'Parcel Delivered', message: 'Successfully delivered to shelter! Capacity and courier load updated.' });
+      } else if (action === 'release') {
+        await api.releaseParcel(id);
+        if (onToast) onToast({ id: Date.now().toString(), type: 'warning', title: 'Parcel Released', message: 'Parcel voluntarily released back to unallocated inventory.' });
+      }
       if (onAllocationUpdated) onAllocationUpdated();
     } catch (err: any) {
       setActionError(err.message || 'Action failed');
+      if (onToast) onToast({ id: Date.now().toString(), type: 'error', title: 'Dispatch Action Failed', message: err.message || 'Action failed' });
     } finally {
       setProcessingId(null);
     }

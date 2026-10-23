@@ -82,10 +82,15 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const polylineRef = useRef<any>(null);
   const simMarkerRef = useRef<any>(null);
 
-  // Default selected allocation to first available
+  // Default selected allocation to first available and validate on allocation updates
   useEffect(() => {
-    if (allocations.length > 0 && !selectedAllocationId) {
-      setSelectedAllocationId(allocations[0].id);
+    if (allocations.length > 0) {
+      const exists = allocations.some((a) => a.id === selectedAllocationId);
+      if (!exists) {
+        setSelectedAllocationId(allocations[0].id);
+      }
+    } else {
+      setSelectedAllocationId('');
     }
   }, [allocations, selectedAllocationId]);
 
